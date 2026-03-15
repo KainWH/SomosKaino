@@ -12,60 +12,54 @@ type Message = {
 }
 
 type Props = {
-  messages: Message[]      // mensajes del servidor (actualizados con router.refresh)
+  messages: Message[]
   avatarColor: string
   contactInitial: string
   conversationId: string
 }
 
-export default function MessagesView({ messages: serverMessages, avatarColor, contactInitial, conversationId }: Props) {
-  // Mensajes recibidos SOLO via realtime (no están en serverMessages aún)
-  const [realtimeExtras, setRealtimeExtras] = useState<Message[]>([])
+export default function MessagesView({ messages: initial, avatarColor, contactInitial, conversationId }: Props) {
+  const [messages, setMessages] = useState<Message[]>(initial)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const isFirstRender = useRef(true)
 
-  // Combinar: mensajes del servidor + realtime que aún no están en el servidor
-  const messages = [
-    ...serverMessages,
-    ...realtimeExtras.filter(m => !serverMessages.some(s => s.id === m.id)),
-  ]
-
-  // Scroll al fondo en la primera carga
+  // Scroll instantáneo al fondo en la primera carga
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "instant" })
   }, [])
 
-  // Scroll al fondo cuando llegan mensajes nuevos
+  // Scroll suave cuando llegan mensajes nuevos (no en la primera carga)
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages.length])
 
-  // Suscripción a Supabase Realtime para mensajes nuevos (inbound desde WhatsApp)
+  // Cuando el servidor refresca (router.refresh), actualizar desde props
+  useEffect(() => {
+    setMessages(initial)
+  }, [initial])
+
+  // Polling cada 3 segundos para mensajes nuevos (inbound de WhatsApp)
   useEffect(() => {
     const supabase = createClient()
 
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as Message
-          setRealtimeExtras((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev
-            return [...prev, newMsg]
-          })
-        }
-      )
-      .subscribe()
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from("messages")
+        .select("id, content, direction, sent_by_ai, created_at")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true })
 
-    return () => {
-      supabase.removeChannel(channel)
+      if (data && data.length > 0) {
+        setMessages(data)
+      }
     }
+
+    const interval = setInterval(fetchMessages, 3000)
+    return () => clearInterval(interval)
   }, [conversationId])
 
   if (messages.length === 0) {
