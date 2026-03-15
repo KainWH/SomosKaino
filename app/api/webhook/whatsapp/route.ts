@@ -348,10 +348,14 @@ export async function POST(request: NextRequest) {
     }))
 
   // Datos del Sheet
-  const sheetData    = await getPropertyData()
-  const systemPrompt = sheetData.text
+  const sheetData = await getPropertyData()
+  const basePrompt = sheetData.text
     ? `${aiConfig.system_prompt}\n\n## Inventario de productos:\n${sheetData.text}`
     : aiConfig.system_prompt
+
+  const systemPrompt = history.length > 0
+    ? `${basePrompt}\n\nIMPORTANTE: Ya has interactuado con este cliente antes. NO vuelvas a saludarlo. Continúa la conversación de forma natural.`
+    : basePrompt
 
   // Helper fallback
   const sendFallback = async () => {
