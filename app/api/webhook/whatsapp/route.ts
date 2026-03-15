@@ -98,18 +98,20 @@ export async function POST(request: NextRequest) {
   // Primero intentamos encontrar una conversación abierta existente
   const { data: existingConversation } = await supabase
     .from("conversations")
-    .select("id")
+    .select("id, ai_paused")
     .eq("tenant_id", tenantId)
     .eq("contact_id", contact.id)
     .eq("status", "open")
     .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()  // maybeSingle = devuelve null si no hay, no lanza error
+    .maybeSingle()
 
   let conversationId: string
+  let aiPaused = false
 
   if (existingConversation) {
     conversationId = existingConversation.id
+    aiPaused = existingConversation.ai_paused ?? false
   } else {
     // No hay conversación abierta — crear una nueva
     const { data: newConversation } = await supabase
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
     .eq("tenant_id", tenantId)
     .single()
 
-  if (aiConfig?.enabled) {
+  if (aiConfig?.enabled && !aiPaused) {
     // Obtener los últimos 10 mensajes para dar contexto a la IA
     const { data: recentMessages } = await supabase
       .from("messages")

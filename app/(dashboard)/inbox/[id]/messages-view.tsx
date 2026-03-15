@@ -1,5 +1,4 @@
 "use client"
-// Client Component — necesario para el auto-scroll al montar
 
 import { useEffect, useRef } from "react"
 
@@ -11,10 +10,15 @@ type Message = {
   created_at: string
 }
 
-export default function MessagesView({ messages }: { messages: Message[] }) {
+type Props = {
+  messages: Message[]
+  avatarColor: string
+  contactInitial: string
+}
+
+export default function MessagesView({ messages, avatarColor, contactInitial }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Auto-scroll al fondo cuando carga la página
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "instant" })
   }, [])
@@ -27,7 +31,6 @@ export default function MessagesView({ messages }: { messages: Message[] }) {
     )
   }
 
-  // Agrupar mensajes por día para los separadores
   let lastDateLabel = ""
 
   return (
@@ -35,14 +38,14 @@ export default function MessagesView({ messages }: { messages: Message[] }) {
       {messages.map((msg) => {
         const isInbound = msg.direction === "inbound"
         const date = new Date(msg.created_at)
-
         const time = date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
 
-        const today = new Date()
+        const today     = new Date()
         const yesterday = new Date(today)
         yesterday.setDate(today.getDate() - 1)
+
         let dateLabel = ""
-        if (date.toDateString() === today.toDateString()) dateLabel = "Hoy"
+        if (date.toDateString() === today.toDateString())     dateLabel = "Hoy"
         else if (date.toDateString() === yesterday.toDateString()) dateLabel = "Ayer"
         else dateLabel = date.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
 
@@ -51,7 +54,6 @@ export default function MessagesView({ messages }: { messages: Message[] }) {
 
         return (
           <div key={msg.id}>
-            {/* Separador de fecha */}
             {showDateSeparator && (
               <div className="flex items-center gap-3 my-4">
                 <div className="flex-1 h-px bg-gray-200" />
@@ -60,14 +62,24 @@ export default function MessagesView({ messages }: { messages: Message[] }) {
               </div>
             )}
 
-            {/* Burbuja de mensaje */}
-            <div className={`flex ${isInbound ? "justify-start" : "justify-end"} mb-1`}>
-              <div className={`max-w-[70%] flex flex-col gap-1 ${isInbound ? "items-start" : "items-end"}`}>
+            <div className={`flex items-end gap-2 mb-2 ${isInbound ? "justify-start" : "justify-end"}`}>
+
+              {/* Avatar del contacto (solo en mensajes entrantes) */}
+              {isInbound && (
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mb-1"
+                  style={{ backgroundColor: avatarColor }}
+                >
+                  {contactInitial}
+                </div>
+              )}
+
+              <div className={`max-w-[65%] flex flex-col gap-1 ${isInbound ? "items-start" : "items-end"}`}>
                 <div
                   className={`px-4 py-2.5 text-sm leading-relaxed ${
                     isInbound
-                      ? "bg-white border border-gray-200 text-gray-900 rounded-2xl rounded-tl-sm shadow-sm"
-                      : "bg-green-600 text-white rounded-2xl rounded-tr-sm shadow-sm"
+                      ? "bg-white border border-gray-200 text-gray-900 rounded-2xl rounded-bl-sm shadow-sm"
+                      : "bg-green-600 text-white rounded-2xl rounded-br-sm shadow-sm"
                   }`}
                 >
                   {msg.content}
@@ -79,12 +91,12 @@ export default function MessagesView({ messages }: { messages: Message[] }) {
                   )}
                 </div>
               </div>
+
             </div>
           </div>
         )
       })}
 
-      {/* Ancla para el auto-scroll */}
       <div ref={bottomRef} />
     </>
   )
