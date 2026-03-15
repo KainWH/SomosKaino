@@ -64,11 +64,21 @@ function parseSheet(csv: string): SheetData {
   const lines = csv.trim().split("\n").filter(Boolean)
   if (lines.length === 0) return { text: "", imageMap: {} }
 
-  const headers   = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim())
+  // Buscar la fila de encabezados real (puede haber filas de título antes)
+  let headerLineIdx = 0
+  for (let i = 0; i < Math.min(lines.length, 5); i++) {
+    const candidate = parseCSVLine(lines[i]).map(h => h.toLowerCase().trim())
+    if (candidate.some(h => h.includes("imagen") || h.includes("modelo") || h.includes("nombre"))) {
+      headerLineIdx = i
+      break
+    }
+  }
+
+  const headers   = parseCSVLine(lines[headerLineIdx]).map(h => h.toLowerCase().trim())
   const imageIdx  = headers.findIndex(h => h.includes("imagen") || h.includes("image") || h.includes("foto") || h.includes("url"))
   const nameIdx   = headers.findIndex(h => h.includes("nombre") || h.includes("name") || h.includes("producto") || h.includes("modelo"))
   console.log(`📋 Sheet headers (${headers.length}):`, headers)
-  console.log(`📋 nameIdx=${nameIdx}, imageIdx=${imageIdx}`)
+  console.log(`📋 nameIdx=${nameIdx}, imageIdx=${imageIdx}, headerLineIdx=${headerLineIdx}`)
 
   const imageMap: Record<string, string> = {}
   const textLines: string[] = []
@@ -79,7 +89,7 @@ function parseSheet(csv: string): SheetData {
   )
   textLines.push(displayHeaders.join(" | "))
 
-  for (const line of lines.slice(1)) {
+  for (const line of lines.slice(headerLineIdx + 1)) {
     const cells = parseCSVLine(line)
 
     // Construir mapa de imagen
