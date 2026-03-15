@@ -73,8 +73,11 @@ export async function POST(request: NextRequest) {
 
   const tenantId = whatsappConfig.tenant_id
 
-  // ── Obtener el texto del mensaje (texto directo o transcripción de audio) ──
-  let text = message.text?.body ?? ""
+  // ── Obtener el texto del mensaje ──
+  // textForAI = lo que procesa el agente (transcripción real si es audio)
+  // textForDB  = lo que se guarda/muestra en el chat
+  let textForAI = message.text?.body ?? ""
+  let textForDB = textForAI
 
   if (message.type === "audio" && message.audio?.id) {
     const media = await downloadMedia({
@@ -90,11 +93,12 @@ export async function POST(request: NextRequest) {
       console.error("❌ No se pudo transcribir el audio")
       return NextResponse.json({ status: "ok" }, { status: 200 })
     }
-    text = `🎤 ${transcription}`
+    textForAI = transcription          // el agente lee la transcripción completa
+    textForDB = "🎤 Nota de voz"       // en el chat solo se muestra esto
     console.log(`🎤 Audio transcrito de ${from}: "${transcription}"`)
   }
 
-  if (!text) {
+  if (!textForAI) {
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
@@ -155,13 +159,13 @@ export async function POST(request: NextRequest) {
   // ── PASO 4: Guardar el mensaje entrante ──
   await supabase.from("messages").insert({
     conversation_id:     conversationId,
-    content:             text,
+    content:             textForDB,
     direction:           "inbound",
     sent_by_ai:          false,
     whatsapp_message_id: whatsappMsgId,
   })
 
-  console.log(`📩 Mensaje guardado de ${from}: "${text}"`)
+  console.log(`📩 Mensaje guardado de ${from}: "${textForDB}"`)
 
   // ── PASO 5: Marcar como leído (palomitas azules) ──
   await markAsRead({
@@ -197,7 +201,7 @@ export async function POST(request: NextRequest) {
 
     // Generar respuesta con Gemini
     const reply = await generateReply({
-      userMessage:         text,
+      userMessage:         textForAI,
       systemPrompt:        aiConfig.system_prompt,
       conversationHistory: history,
     })
