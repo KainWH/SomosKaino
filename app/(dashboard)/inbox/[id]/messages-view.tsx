@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 
 type Message = {
   id: string
@@ -42,20 +41,13 @@ export default function MessagesView({ messages: initial, avatarColor, contactIn
     setMessages(initial)
   }, [initial])
 
-  // Polling cada 3 segundos para mensajes nuevos (inbound de WhatsApp)
+  // Polling cada 3 segundos via API route (evita problemas de RLS en el browser)
   useEffect(() => {
-    const supabase = createClient()
-
     const fetchMessages = async () => {
-      const { data } = await supabase
-        .from("messages")
-        .select("id, content, direction, sent_by_ai, created_at")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true })
-
-      if (data && data.length > 0) {
-        setMessages(data)
-      }
+      const res = await fetch(`/api/conversations/${conversationId}/messages`)
+      if (!res.ok) return
+      const data: Message[] = await res.json()
+      if (data.length > 0) setMessages(data)
     }
 
     const interval = setInterval(fetchMessages, 3000)
