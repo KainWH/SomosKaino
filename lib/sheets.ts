@@ -36,14 +36,27 @@ function parseCSVLine(line: string): string[] {
   return cells
 }
 
-// Convierte URL de Google Drive (sharing link) a URL descargable directamente
+// Convierte cualquier formato de URL de Google Drive a una URL de imagen directa
 function normalizeImageUrl(url: string): string {
   if (!url) return url
-  // https://drive.google.com/file/d/FILE_ID/view → descarga directa
-  const driveMatch = url.match(/\/file\/d\/([^/]+)/)
-  if (driveMatch) {
-    return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`
+
+  // Extrae el FILE_ID de cualquier formato de Drive:
+  // /file/d/FILE_ID/view, /open?id=FILE_ID, /uc?id=FILE_ID, etc.
+  let fileId: string | null = null
+
+  const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+  if (fileMatch) fileId = fileMatch[1]
+
+  if (!fileId) {
+    const paramMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+    if (paramMatch) fileId = paramMatch[1]
   }
+
+  if (fileId) {
+    // thumbnail es más confiable que uc?export=download para imágenes
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`
+  }
+
   return url
 }
 
