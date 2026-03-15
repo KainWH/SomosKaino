@@ -1,17 +1,21 @@
 // Obtiene los datos de Google Sheets como JSON y los convierte a texto legible para la IA
 // El sheet debe estar en modo público: "Cualquiera con el enlace puede ver"
 
-const SHEET_ID  = "1lPNKPKn43Xoc3uRQTPkn0-2PIMQH4UXp3OOIHnPu-_k"
-const SHEET_GID = "1022367056"
-const JSON_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}`
+// IDs por defecto (se sobreescriben con la config del tenant)
+const DEFAULT_SHEET_ID  = "1lPNKPKn43Xoc3uRQTPkn0-2PIMQH4UXp3OOIHnPu-_k"
+const DEFAULT_SHEET_GID = "1022367056"
+
+function buildJsonUrl(sheetId: string, sheetGid: string) {
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${sheetGid}`
+}
 
 export type SheetData = {
   text:     string                    // contexto para la IA (sin URLs reales)
   imageMap: Record<string, string>    // nombre_producto_lowercase → URL de imagen
 }
 
-// Cache en memoria — se renueva cada 5 minutos
-let cache: (SheetData & { fetchedAt: number }) | null = null
+// Cache en memoria por tenant — se renueva cada 5 minutos
+const cacheMap = new Map<string, SheetData & { fetchedAt: number }>()
 const CACHE_TTL_MS = 5 * 60 * 1000
 
 // Convierte cualquier formato de URL de Google Drive a una URL de imagen directa
@@ -94,28 +98,34 @@ function parseGvizJson(raw: string): SheetData {
   return { text: textLines.join("\n"), imageMap }
 }
 
-export async function getPropertyData(): Promise<SheetData> {
+export async function getPropertyData(sheetId?: string | null, sheetGid?: string | null): Promise<SheetData> {
+  const id  = sheetId  || DEFAULT_SHEET_ID
+  const gid = sheetGid || DEFAULT_SHEET_GID
+  const cacheKey = `${id}:${gid}`
   const now = Date.now()
 
-  if (cache && now - cache.fetchedAt < CACHE_TTL_MS) {
-    return { text: cache.text, imageMap: cache.imageMap }
+  const cached = cacheMap.get(cacheKey)
+  if (cached && now - cached.fetchedAt < CACHE_TTL_MS) {
+    return { text: cached.text, imageMap: cached.imageMap }
   }
 
+  const jsonUrl = buildJsonUrl(id, gid)
+
   try {
-    const res = await fetch(JSON_URL, { cache: "no-store" })
+    const res = await fetch(jsonUrl, { cache: "no-store" })
     if (!res.ok) {
       console.error(`❌ No se pudo obtener el sheet: ${res.status}`)
-      return cache ?? { text: "", imageMap: {} }
+      return cached ?? { text: "", imageMap: {} }
     }
 
     const raw  = await res.text()
     const data = parseGvizJson(raw)
-    cache = { ...data, fetchedAt: now }
-    console.log(`✅ Sheet actualizado — ${Object.keys(data.imageMap).length} productos con imagen:`, Object.keys(data.imageMap))
+    cacheMap.set(cacheKey, { ...data, fetchedAt: now })
+    console.log(`✅ Sheet actualizado (${id}) — ${Object.keys(data.imageMap).length} productos con imagen:`, Object.keys(data.imageMap))
     return data
   } catch (err) {
     console.error("❌ Error al obtener el sheet:", err)
-    return cache ?? { text: "", imageMap: {} }
+    return cached ?? { text: "", imageMap: {} }
   }
 }
 

@@ -101,6 +101,13 @@ export async function POST(request: NextRequest) {
 
   const tenantId = whatsappConfig.tenant_id
 
+  // Cargar config del catálogo del tenant
+  const { data: catalogConfig } = await supabase
+    .from("catalog_configs")
+    .select("sheet_id, sheet_gid")
+    .eq("tenant_id", tenantId)
+    .maybeSingle()
+
   // ── PASO 2: Procesar el contenido del mensaje ──
   let textForAI  = message.text?.body ?? ""
   let textForDB  = textForAI
@@ -363,8 +370,8 @@ export async function POST(request: NextRequest) {
       content: msg.content,
     }))
 
-  // Datos del Sheet
-  const sheetData = await getPropertyData()
+  // Datos del Sheet del tenant
+  const sheetData = await getPropertyData(catalogConfig?.sheet_id, catalogConfig?.sheet_gid)
   const basePrompt = sheetData.text
     ? `${aiConfig.system_prompt}\n\n## Inventario de productos:\n${sheetData.text}`
     : aiConfig.system_prompt
