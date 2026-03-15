@@ -11,6 +11,16 @@ import { getPropertyData, findImageUrl } from "@/lib/sheets"
 // Número del dueño — recibe notificaciones de compras y aprueba pagos
 const OWNER_PHONE = process.env.OWNER_PHONE ?? ""
 
+// Deduplicación en memoria — evita reprocesar si Meta reenvía el webhook
+const recentlyProcessed = new Set<string>()
+function isAlreadyProcessed(msgId: string): boolean {
+  if (recentlyProcessed.has(msgId)) return true
+  recentlyProcessed.add(msgId)
+  // Limpiar después de 10 minutos
+  setTimeout(() => recentlyProcessed.delete(msgId), 10 * 60 * 1000)
+  return false
+}
+
 // Cliente con service role — bypasa RLS, solo usar en el servidor
 function createServiceClient() {
   return createClient(
@@ -57,9 +67,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
+  // ── DEDUPLICACIÓN EN MEMORIA (primer filtro — evita reintentos de Meta) ──
+  if (isAlreadyProcessed(whatsappMsgId)) {
+    console.log(`⏭️ Mensaje ya procesado (memoria): ${whatsappMsgId}`)
+    return NextResponse.json({ status: "ok" }, { status: 200 })
+  }
+
   const supabase = createServiceClient()
 
-  // ── DEDUPLICACIÓN ──
+  // ── DEDUPLICACIÓN EN DB (segundo filtro — por si el servidor reinició) ──
   const { data: duplicate } = await supabase
     .from("messages")
     .select("id")
@@ -67,7 +83,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (duplicate) {
-    console.log(`⏭️ Mensaje duplicado ignorado: ${whatsappMsgId}`)
+    console.log(`⏭️ Mensaje duplicado ignorado (DB): ${whatsappMsgId}`)
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
