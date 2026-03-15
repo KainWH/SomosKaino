@@ -4,8 +4,8 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { generateReply } from "@/lib/ai"
-import { sendWhatsAppMessage, markAsRead } from "@/lib/whatsapp"
+import { generateReply, transcribeAudio } from "@/lib/ai"
+import { sendWhatsAppMessage, markAsRead, downloadMedia } from "@/lib/whatsapp"
 
 // Cliente con service role — bypasa RLS, solo usar en el servidor
 // El webhook no tiene sesión de usuario, por eso necesitamos este cliente especial
@@ -46,14 +46,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
-  const message         = messages[0]
-  const from            = message.from          // Número del contacto: "5215512345678"
-  const text            = message.text?.body    // Texto del mensaje
-  const whatsappMsgId   = message.id            // ID único del mensaje en Meta
-  const phoneNumberId   = value?.metadata?.phone_number_id  // Identifica qué tenant recibió el mensaje
+  const message       = messages[0]
+  const from          = message.from
+  const whatsappMsgId = message.id
+  const phoneNumberId = value?.metadata?.phone_number_id
 
-  // Por ahora solo procesamos mensajes de texto
-  if (message.type !== "text" || !text) {
+  // Solo procesamos texto y audio
+  if (message.type !== "text" && message.type !== "audio") {
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
@@ -73,6 +72,31 @@ export async function POST(request: NextRequest) {
   }
 
   const tenantId = whatsappConfig.tenant_id
+
+  // ── Obtener el texto del mensaje (texto directo o transcripción de audio) ──
+  let text = message.text?.body ?? ""
+
+  if (message.type === "audio" && message.audio?.id) {
+    const media = await downloadMedia({
+      mediaId:     message.audio.id,
+      accessToken: whatsappConfig.access_token!,
+    })
+    if (!media) {
+      console.error("❌ No se pudo descargar el audio")
+      return NextResponse.json({ status: "ok" }, { status: 200 })
+    }
+    const transcription = await transcribeAudio(media.buffer, media.mimeType)
+    if (!transcription) {
+      console.error("❌ No se pudo transcribir el audio")
+      return NextResponse.json({ status: "ok" }, { status: 200 })
+    }
+    text = `🎤 ${transcription}`
+    console.log(`🎤 Audio transcrito de ${from}: "${transcription}"`)
+  }
+
+  if (!text) {
+    return NextResponse.json({ status: "ok" }, { status: 200 })
+  }
 
   // ── PASO 2: Crear o actualizar el contacto ──
   // upsert = INSERT si no existe, UPDATE si ya existe (basado en tenant_id + phone)

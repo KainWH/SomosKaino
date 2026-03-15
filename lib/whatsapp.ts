@@ -39,6 +39,37 @@ export async function sendWhatsAppMessage({
   return response.json()
 }
 
+// Descarga un archivo de media de WhatsApp (audio, imagen, etc.)
+// Paso 1: obtener la URL real del media usando su ID
+// Paso 2: descargar el archivo con el token de acceso
+export async function downloadMedia({
+  mediaId,
+  accessToken,
+}: {
+  mediaId: string
+  accessToken: string
+}): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  try {
+    // Paso 1: obtener URL y mime_type
+    const metaRes = await fetch(`${WHATSAPP_API_URL}/${mediaId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!metaRes.ok) return null
+    const { url, mime_type } = await metaRes.json()
+
+    // Paso 2: descargar el archivo
+    const fileRes = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!fileRes.ok) return null
+
+    const buffer = Buffer.from(await fileRes.arrayBuffer())
+    return { buffer, mimeType: mime_type ?? "audio/ogg" }
+  } catch {
+    return null
+  }
+}
+
 // Marca un mensaje como leído (palomitas azules)
 export async function markAsRead({
   messageId,
