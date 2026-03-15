@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateReply, transcribeAudio } from "@/lib/ai"
 import { sendWhatsAppMessage, markAsRead, downloadMedia } from "@/lib/whatsapp"
+import { getPropertyData } from "@/lib/sheets"
 
 // Cliente con service role — bypasa RLS, solo usar en el servidor
 // El webhook no tiene sesión de usuario, por eso necesitamos este cliente especial
@@ -199,10 +200,16 @@ export async function POST(request: NextRequest) {
         content: msg.content,
       }))
 
+    // Obtener datos de propiedades desde Google Sheets
+    const propertyData = await getPropertyData()
+    const systemPrompt = propertyData
+      ? `${aiConfig.system_prompt}\n\n## Información de propiedades disponibles:\n${propertyData}`
+      : aiConfig.system_prompt
+
     // Generar respuesta con Gemini
     const reply = await generateReply({
       userMessage:         textForAI,
-      systemPrompt:        aiConfig.system_prompt,
+      systemPrompt,
       conversationHistory: history,
     })
 
