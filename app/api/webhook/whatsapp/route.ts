@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateReply, transcribeAudio, describeImage } from "@/lib/ai"
-import { sendWhatsAppMessage, markAsRead, downloadMedia } from "@/lib/whatsapp"
+import { sendWhatsAppMessage, sendWhatsAppMedia, uploadMedia, markAsRead, downloadMedia } from "@/lib/whatsapp"
 import { getPropertyData } from "@/lib/sheets"
 
 // Cliente con service role — bypasa RLS, solo usar en el servidor
@@ -258,30 +258,92 @@ export async function POST(request: NextRequest) {
       : aiConfig.system_prompt
 
     // Generar respuesta con Gemini
-    const reply = await generateReply({
+    const { reply, image_url } = await generateReply({
       userMessage:         textForAI,
       systemPrompt,
       conversationHistory: history,
     })
 
-    // Enviar respuesta por WhatsApp
-    const sent = await sendWhatsAppMessage({
-      to:            from,
-      message:       reply,
-      phoneNumberId: whatsappConfig.phone_number_id!,
-      accessToken:   whatsappConfig.access_token!,
-    })
+    // Enviar imagen si la IA incluyó una URL
+    if (image_url) {
+      try {
+        // 1. Descargar la imagen desde la URL del Sheet
+        const imgRes = await fetch(image_url)
+        if (!imgRes.ok) throw new Error(`No se pudo descargar la imagen: ${imgRes.status}`)
 
-    // Guardar el mensaje saliente en la BD
-    await supabase.from("messages").insert({
-      conversation_id:     conversationId,
-      content:             reply,
-      direction:           "outbound",
-      sent_by_ai:          true,
-      whatsapp_message_id: sent?.messages?.[0]?.id ?? null,
-    })
+        const mimeType = imgRes.headers.get("content-type") ?? "image/jpeg"
+        const ext      = mimeType.split("/")[1]?.split(";")[0] ?? "jpg"
+        const buffer   = Buffer.from(await imgRes.arrayBuffer())
 
-    console.log(`🤖 Respuesta IA enviada a ${from}: "${reply}"`)
+        // 2. Subir la imagen a WhatsApp
+        const mediaId = await uploadMedia({
+          buffer,
+          mimeType,
+          filename:      `imagen.${ext}`,
+          phoneNumberId: whatsappConfig.phone_number_id!,
+          accessToken:   whatsappConfig.access_token!,
+        })
+        if (!mediaId) throw new Error("uploadMedia devolvió null")
+
+        // 3. Enviar la imagen por WhatsApp
+        await sendWhatsAppMedia({
+          to:            from,
+          mediaId,
+          type:          "image",
+          phoneNumberId: whatsappConfig.phone_number_id!,
+          accessToken:   whatsappConfig.access_token!,
+        })
+
+        await supabase.from("messages").insert({
+          conversation_id: conversationId,
+          content:         reply || "🖼️ Imagen",
+          direction:       "outbound",
+          sent_by_ai:      true,
+          message_type:    "image",
+        })
+
+        console.log(`🖼️ Imagen enviada a ${from}: ${image_url}`)
+
+        // Si también hay texto (caption), enviarlo como mensaje aparte
+        if (reply) {
+          const sent = await sendWhatsAppMessage({
+            to:            from,
+            message:       reply,
+            phoneNumberId: whatsappConfig.phone_number_id!,
+            accessToken:   whatsappConfig.access_token!,
+          })
+          await supabase.from("messages").insert({
+            conversation_id:     conversationId,
+            content:             reply,
+            direction:           "outbound",
+            sent_by_ai:          true,
+            whatsapp_message_id: sent?.messages?.[0]?.id ?? null,
+          })
+        }
+      } catch (err) {
+        console.error("❌ Error enviando imagen:", err)
+      }
+    } else if (reply) {
+      // Enviar solo texto
+      const sent = await sendWhatsAppMessage({
+        to:            from,
+        message:       reply,
+        phoneNumberId: whatsappConfig.phone_number_id!,
+        accessToken:   whatsappConfig.access_token!,
+      })
+
+      await supabase.from("messages").insert({
+        conversation_id:     conversationId,
+        content:             reply,
+        direction:           "outbound",
+        sent_by_ai:          true,
+        whatsapp_message_id: sent?.messages?.[0]?.id ?? null,
+      })
+
+      console.log(`🤖 Respuesta IA enviada a ${from}: "${reply}"`)
+    } else {
+      console.warn(`⚠️ La IA generó una respuesta vacía para ${from}, no se envió nada`)
+    }
   }
 
   // Siempre responder 200 a Meta — si no, reintenta el envío indefinidamente

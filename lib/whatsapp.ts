@@ -146,6 +146,48 @@ export async function sendWhatsAppMedia({
   return response.json()
 }
 
+// Envía una imagen a WhatsApp usando una URL pública (sin necesidad de subir el archivo)
+export async function sendWhatsAppImageByUrl({
+  to,
+  url,
+  caption,
+  phoneNumberId,
+  accessToken,
+}: {
+  to: string
+  url: string
+  caption?: string
+  phoneNumberId: string
+  accessToken: string
+}) {
+  const imagePayload: { link: string; caption?: string } = { link: url }
+  if (caption) imagePayload.caption = caption
+
+  const response = await fetch(
+    `${WHATSAPP_API_URL}/${phoneNumberId}/messages`,
+    {
+      method:  "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type":  "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type:  "image",
+        image: imagePayload,
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(`Error de WhatsApp API: ${JSON.stringify(error)}`)
+  }
+
+  return response.json()
+}
+
 // Marca un mensaje como leído (palomitas azules)
 export async function markAsRead({
   messageId,
