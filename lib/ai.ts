@@ -41,11 +41,15 @@ export async function describeImage(buffer: Buffer, mimeType: string): Promise<s
 }
 
 const JSON_FORMAT_INSTRUCTION = `
-IMPORTANTE: Responde SIEMPRE con JSON válido en este formato exacto:
-{"reply": "tu mensaje de texto aquí", "image_url": "URL completa de la imagen o null"}
-- Usa image_url solo cuando el usuario pida ver una foto/imagen de un producto y tengas una URL en los datos de propiedades.
-- Si no necesitas enviar imagen, pon null en image_url.
-- No incluyas markdown, bloques de código ni texto fuera del JSON.`
+
+IMPORTANTE — FORMATO DE RESPUESTA OBLIGATORIO:
+Responde SIEMPRE con un objeto JSON en una sola línea, sin markdown, sin bloques de código, sin texto fuera del JSON:
+{"reply": "tu mensaje aquí", "image_url": null}
+
+Reglas para image_url:
+- Si el usuario pide ver una foto/imagen de un producto Y los datos contienen una columna imagen_url con un valor para ese producto, copia ese valor EXACTAMENTE en image_url.
+- En cualquier otro caso, pon null.
+- NUNCA inventes rutas, nombres de archivo ni herramientas. Solo copia la URL tal como aparece en los datos.`
 
 export async function generateReply({
   userMessage,
