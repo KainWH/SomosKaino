@@ -71,6 +71,12 @@ export async function generateReply({
   })
 
   const raw = response.text?.trim() ?? ""
+  console.log(`🤖 Gemini raw (${raw.length} chars):`, raw.substring(0, 300))
+
+  if (!raw) {
+    console.warn("⚠️ Gemini devolvió respuesta vacía")
+    return { reply: "", image_url: null }
+  }
 
   // Intentar parsear JSON — si falla, usar el texto tal cual sin imagen
   try {
@@ -81,6 +87,7 @@ export async function generateReply({
       image_url: parsed.image_url && parsed.image_url !== "null" ? parsed.image_url : null,
     }
   } catch {
+    console.warn("⚠️ Gemini no devolvió JSON válido, usando texto plano")
     return { reply: raw, image_url: null }
   }
 }

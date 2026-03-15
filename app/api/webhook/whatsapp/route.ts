@@ -233,6 +233,8 @@ export async function POST(request: NextRequest) {
     .eq("tenant_id", tenantId)
     .single()
 
+  console.log(`🔧 AI config: enabled=${aiConfig?.enabled}, aiPaused=${aiPaused}`)
+
   if (aiConfig?.enabled && !aiPaused) {
     // Obtener los últimos 10 mensajes para dar contexto a la IA
     const { data: recentMessages } = await supabase
@@ -288,9 +290,11 @@ export async function POST(request: NextRequest) {
         systemPrompt,
         conversationHistory: history,
       }))
+      console.log(`🤖 generateReply → reply="${reply.substring(0, 100)}", image_url=${image_url}`)
     } catch (err) {
       console.error("❌ Error generando respuesta con IA:", err)
       await sendFallback()
+      return NextResponse.json({ status: "ok" }, { status: 200 })
     }
 
     // Enviar imagen si la IA incluyó una URL
