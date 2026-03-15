@@ -1,9 +1,9 @@
-// Obtiene los datos de Google Sheets como CSV y los convierte a texto legible para la IA
+// Obtiene los datos de Google Sheets como JSON y los convierte a texto legible para la IA
 // El sheet debe estar en modo público: "Cualquiera con el enlace puede ver"
 
 const SHEET_ID  = "1lPNKPKn43Xoc3uRQTPkn0-2PIMQH4UXp3OOIHnPu-_k"
 const SHEET_GID = "1022367056"
-const CSV_URL   = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`
+const JSON_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}`
 
 export type SheetData = {
   text:     string                    // contexto para la IA (sin URLs reales)
@@ -14,34 +14,10 @@ export type SheetData = {
 let cache: (SheetData & { fetchedAt: number }) | null = null
 const CACHE_TTL_MS = 5 * 60 * 1000
 
-// Parser de línea CSV que respeta campos entre comillas
-function parseCSVLine(line: string): string[] {
-  const cells: string[] = []
-  let current  = ""
-  let inQuotes = false
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i]
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') { current += '"'; i++ }
-      else { inQuotes = !inQuotes }
-    } else if (ch === ',' && !inQuotes) {
-      cells.push(current.trim())
-      current = ""
-    } else {
-      current += ch
-    }
-  }
-  cells.push(current.trim())
-  return cells
-}
-
 // Convierte cualquier formato de URL de Google Drive a una URL de imagen directa
 function normalizeImageUrl(url: string): string {
   if (!url) return url
 
-  // Extrae el FILE_ID de cualquier formato de Drive:
-  // /file/d/FILE_ID/view, /open?id=FILE_ID, /uc?id=FILE_ID, etc.
   let fileId: string | null = null
 
   const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
@@ -53,58 +29,66 @@ function normalizeImageUrl(url: string): string {
   }
 
   if (fileId) {
-    // thumbnail es más confiable que uc?export=download para imágenes
     return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`
   }
 
   return url
 }
 
-function parseSheet(csv: string): SheetData {
-  const lines = csv.trim().split("\n").filter(Boolean)
-  if (lines.length === 0) return { text: "", imageMap: {} }
+// Normaliza un nombre: minúsculas, guiones/underscores → espacios
+function normalizeName(s: string): string {
+  return s.toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ").trim()
+}
 
-  // Buscar la fila de encabezados real (puede haber filas de título antes)
-  let headerLineIdx = 0
-  for (let i = 0; i < Math.min(lines.length, 5); i++) {
-    const candidate = parseCSVLine(lines[i]).map(h => h.toLowerCase().trim())
-    if (candidate.some(h => h.includes("imagen") || h.includes("modelo") || h.includes("nombre"))) {
-      headerLineIdx = i
-      break
-    }
+function parseGvizJson(raw: string): SheetData {
+  // El gviz JSON viene envuelto en: google.visualization.Query.setResponse({...});
+  const match = raw.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)
+  if (!match) {
+    console.error("❌ No se pudo extraer JSON del gviz response")
+    return { text: "", imageMap: {} }
   }
 
-  const headers   = parseCSVLine(lines[headerLineIdx]).map(h => h.toLowerCase().trim())
-  const imageIdx  = headers.findIndex(h => h.includes("imagen") || h.includes("image") || h.includes("foto") || h.includes("url"))
-  const nameIdx   = headers.findIndex(h => h.includes("nombre") || h.includes("name") || h.includes("producto") || h.includes("modelo"))
-  console.log(`📋 Sheet headers (${headers.length}):`, headers)
-  console.log(`📋 nameIdx=${nameIdx}, imageIdx=${imageIdx}, headerLineIdx=${headerLineIdx}`)
+  let table: { cols: { label: string }[]; rows: { c: ({ v: string | null } | null)[] }[] }
+  try {
+    const parsed = JSON.parse(match[1])
+    table = parsed.table
+  } catch {
+    console.error("❌ Error parseando JSON del sheet")
+    return { text: "", imageMap: {} }
+  }
+
+  const cols = table.cols.map(c => c.label?.toLowerCase().trim() ?? "")
+
+  // Encontrar columnas de nombre e imagen
+  const nameIdx  = cols.findIndex(h => h.includes("nombre") || h.includes("name") || h.includes("producto") || h.includes("modelo"))
+  const imageIdx = cols.findIndex(h => h.includes("imagen") || h.includes("image") || h.includes("foto") || h.includes("url"))
+
+  console.log(`📋 Columnas (${cols.length}): nameIdx=${nameIdx} ("${cols[nameIdx]}"), imageIdx=${imageIdx} ("${cols[imageIdx]}")`)
 
   const imageMap: Record<string, string> = {}
   const textLines: string[] = []
 
-  // Cabecera para la IA (reemplazamos imagen_url por "imagen")
-  const displayHeaders = headers.map((h, i) =>
-    i === imageIdx ? "imagen" : h
-  )
-  textLines.push(displayHeaders.join(" | "))
+  // Cabecera para la IA
+  const displayCols = cols.map((h, i) => i === imageIdx ? "imagen" : h)
+  textLines.push(displayCols.join(" | "))
 
-  for (const line of lines.slice(headerLineIdx + 1)) {
-    const cells = parseCSVLine(line)
+  for (const row of table.rows) {
+    const cells = row.c ?? []
+    const getValue = (i: number) => cells[i]?.v?.toString().trim() ?? ""
 
-    // Construir mapa de imagen
-    const productName = nameIdx >= 0 ? cells[nameIdx]?.trim() : cells[0]?.trim()
-    const rawUrl      = imageIdx >= 0 ? cells[imageIdx]?.trim() : ""
+    const productName = nameIdx >= 0 ? getValue(nameIdx) : getValue(0)
+    const rawUrl      = imageIdx >= 0 ? getValue(imageIdx) : ""
+
     if (productName && rawUrl) {
       imageMap[productName.toLowerCase()] = normalizeImageUrl(rawUrl)
     }
 
-    // Texto para la IA: en lugar de la URL, mostrar "disponible" o ""
-    const displayCells = cells.map((c, i) => {
+    // Texto para la IA
+    const displayRow = cols.map((_, i) => {
       if (i === imageIdx) return rawUrl ? "disponible" : ""
-      return c.replace(/^"|"$/g, "").trim()
+      return getValue(i)
     })
-    textLines.push(displayCells.join(" | "))
+    textLines.push(displayRow.join(" | "))
   }
 
   return { text: textLines.join("\n"), imageMap }
@@ -118,27 +102,21 @@ export async function getPropertyData(): Promise<SheetData> {
   }
 
   try {
-    const res = await fetch(CSV_URL, { next: { revalidate: 0 } })
+    const res = await fetch(JSON_URL, { cache: "no-store" })
     if (!res.ok) {
       console.error(`❌ No se pudo obtener el sheet: ${res.status}`)
-      return cache ? { text: cache.text, imageMap: cache.imageMap } : { text: "", imageMap: {} }
+      return cache ?? { text: "", imageMap: {} }
     }
 
-    const csv  = await res.text()
-    console.log(`📄 CSV recibido (primeros 300 chars):`, csv.substring(0, 300))
-    const data = parseSheet(csv)
+    const raw  = await res.text()
+    const data = parseGvizJson(raw)
     cache = { ...data, fetchedAt: now }
     console.log(`✅ Sheet actualizado — ${Object.keys(data.imageMap).length} productos con imagen:`, Object.keys(data.imageMap))
     return data
   } catch (err) {
     console.error("❌ Error al obtener el sheet:", err)
-    return cache ? { text: cache.text, imageMap: cache.imageMap } : { text: "", imageMap: {} }
+    return cache ?? { text: "", imageMap: {} }
   }
-}
-
-// Normaliza un nombre: minúsculas, guiones/underscores → espacios
-function normalizeName(s: string): string {
-  return s.toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ").trim()
 }
 
 // Busca la URL de imagen de un producto por nombre (fuzzy match)
@@ -150,10 +128,8 @@ export function findImageUrl(productName: string, imageMap: Record<string, strin
   for (const [k, url] of Object.entries(imageMap)) {
     const nk = normalizeName(k)
 
-    // Coincidencia exacta o parcial (normalizada)
     if (nk === key || nk.includes(key) || key.includes(nk)) return url
 
-    // Coincidencia por palabras clave individuales (ej: "a07" en "samsung galaxy a07 negro")
     const words = key.split(/\s+/).filter(w => w.length > 1)
     if (words.every(w => nk.includes(w))) return url
   }
