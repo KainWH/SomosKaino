@@ -158,9 +158,9 @@ export async function POST(request: NextRequest) {
   }
 
   // ── PASO 4: Conversación ──
-  const { data: existingConversation } = await supabase
+  const { data: existingConversation, error: convError } = await supabase
     .from("conversations")
-    .select("id, ai_paused, awaiting_approval")
+    .select("id, ai_paused")
     .eq("tenant_id", tenantId)
     .eq("contact_id", contact.id)
     .eq("status", "open")
@@ -168,14 +168,23 @@ export async function POST(request: NextRequest) {
     .limit(1)
     .maybeSingle()
 
+  if (convError) console.error("❌ Error buscando conversación:", convError.message)
+
   let conversationId: string
   let aiPaused         = false
   let awaitingApproval = false
 
   if (existingConversation) {
-    conversationId   = existingConversation.id
-    aiPaused         = existingConversation.ai_paused         ?? false
-    awaitingApproval = existingConversation.awaiting_approval  ?? false
+    conversationId = existingConversation.id
+    aiPaused       = existingConversation.ai_paused ?? false
+
+    // awaiting_approval en query separada (requiere migración DB)
+    const { data: convExtra } = await supabase
+      .from("conversations")
+      .select("awaiting_approval")
+      .eq("id", conversationId)
+      .maybeSingle()
+    awaitingApproval = convExtra?.awaiting_approval ?? false
   } else {
     const { data: newConversation } = await supabase
       .from("conversations")

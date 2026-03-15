@@ -132,6 +132,7 @@ function normalizeName(s: string): string {
 export function findImageUrl(productName: string, imageMap: Record<string, string>): string | null {
   if (!productName) return null
   const key = normalizeName(productName)
+  console.log(`🔍 Buscando imagen: "${key}" en`, Object.keys(imageMap).map(normalizeName))
 
   for (const [k, url] of Object.entries(imageMap)) {
     const nk = normalizeName(k)
