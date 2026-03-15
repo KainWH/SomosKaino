@@ -1,0 +1,91 @@
+"use client"
+// Client Component — necesario para el auto-scroll al montar
+
+import { useEffect, useRef } from "react"
+
+type Message = {
+  id: string
+  content: string
+  direction: "inbound" | "outbound"
+  sent_by_ai: boolean
+  created_at: string
+}
+
+export default function MessagesView({ messages }: { messages: Message[] }) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll al fondo cuando carga la página
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "instant" })
+  }, [])
+
+  if (messages.length === 0) {
+    return (
+      <p className="text-center text-gray-400 text-sm mt-8">
+        No hay mensajes en esta conversación
+      </p>
+    )
+  }
+
+  // Agrupar mensajes por día para los separadores
+  let lastDateLabel = ""
+
+  return (
+    <>
+      {messages.map((msg) => {
+        const isInbound = msg.direction === "inbound"
+        const date = new Date(msg.created_at)
+
+        const time = date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
+
+        const today = new Date()
+        const yesterday = new Date(today)
+        yesterday.setDate(today.getDate() - 1)
+        let dateLabel = ""
+        if (date.toDateString() === today.toDateString()) dateLabel = "Hoy"
+        else if (date.toDateString() === yesterday.toDateString()) dateLabel = "Ayer"
+        else dateLabel = date.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })
+
+        const showDateSeparator = dateLabel !== lastDateLabel
+        lastDateLabel = dateLabel
+
+        return (
+          <div key={msg.id}>
+            {/* Separador de fecha */}
+            {showDateSeparator && (
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400 font-medium">{dateLabel}</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+            )}
+
+            {/* Burbuja de mensaje */}
+            <div className={`flex ${isInbound ? "justify-start" : "justify-end"} mb-1`}>
+              <div className={`max-w-[70%] flex flex-col gap-1 ${isInbound ? "items-start" : "items-end"}`}>
+                <div
+                  className={`px-4 py-2.5 text-sm leading-relaxed ${
+                    isInbound
+                      ? "bg-white border border-gray-200 text-gray-900 rounded-2xl rounded-tl-sm shadow-sm"
+                      : "bg-green-600 text-white rounded-2xl rounded-tr-sm shadow-sm"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+                <div className="flex items-center gap-1.5 px-1">
+                  <span className="text-xs text-gray-400">{time}</span>
+                  {msg.sent_by_ai && (
+                    <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">🤖 IA</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Ancla para el auto-scroll */}
+      <div ref={bottomRef} />
+    </>
+  )
+}
