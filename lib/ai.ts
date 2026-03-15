@@ -89,6 +89,22 @@ export async function generateReply({
     return { reply: "", productName: null, purchaseDetected: false, clientSummary: "" }
   }
 
+  // Gemini a veces alucina un "tool_code" de Drive — extraemos el nombre del producto del filename
+  if (raw.includes("tool_code") || raw.includes("Drive(")) {
+    const fileMatch = raw.match(/file_name=['"]([^'"]+)['"]/)
+    if (fileMatch) {
+      const productName = fileMatch[1]
+        .replace(/\.[^.]+$/, "")   // quitar extensión
+        .replace(/[-_]/g, " ")     // guiones → espacios
+        .replace(/\s+/g, " ")
+        .trim()
+      console.warn(`⚠️ Gemini usó tool_code — extrayendo producto: "${productName}"`)
+      return { reply: "", productName, purchaseDetected: false, clientSummary: "" }
+    }
+    console.warn("⚠️ Gemini usó tool_code pero no se pudo extraer el producto")
+    return { reply: "", productName: null, purchaseDetected: false, clientSummary: "" }
+  }
+
   try {
     const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "")
     const parsed  = JSON.parse(cleaned)
