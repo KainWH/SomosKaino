@@ -6,7 +6,6 @@ import type { WhatsappConfig } from "@/types"
 export default function WhatsappForm({ config }: { config: WhatsappConfig | null }) {
   const [phoneNumberId, setPhoneNumberId] = useState(config?.phone_number_id ?? "")
   const [accessToken, setAccessToken]     = useState(config?.access_token ?? "")
-  const [phoneDisplay, setPhoneDisplay]   = useState(config?.phone_display ?? "")
   const [status, setStatus]   = useState<"idle" | "loading" | "success" | "error">("idle")
   const [errorMsg, setErrorMsg] = useState("")
 
@@ -20,7 +19,6 @@ export default function WhatsappForm({ config }: { config: WhatsappConfig | null
       body: JSON.stringify({
         phone_number_id: phoneNumberId,
         access_token:    accessToken,
-        phone_display:   phoneDisplay,
       }),
     })
 
@@ -65,18 +63,6 @@ export default function WhatsappForm({ config }: { config: WhatsappConfig | null
             value={accessToken}
             onChange={(e) => setAccessToken(e.target.value)}
             placeholder="EAABsbCS..."
-            required
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-gray-700">Número de teléfono</label>
-          <input
-            type="text"
-            value={phoneDisplay}
-            onChange={(e) => setPhoneDisplay(e.target.value)}
-            placeholder="+52 55 1234 5678"
             required
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />

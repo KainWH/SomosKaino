@@ -16,14 +16,13 @@ export async function POST(request: NextRequest) {
   if (!tenant) return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 })
 
   const body = await request.json()
-  const { phone_number_id, access_token, phone_display } = body
+  const { phone_number_id, access_token } = body
 
   const { error } = await supabase
     .from("whatsapp_configs")
     .update({
       phone_number_id,
       access_token,
-      phone_display,
       is_configured: true,
     })
     .eq("tenant_id", tenant.id)
