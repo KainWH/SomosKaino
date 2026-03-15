@@ -33,14 +33,24 @@ export default async function ConversationPage({ params }: { params: { id: strin
 
   if (!tenant) redirect("/login")
 
-  const { data: conversation } = await supabase
+  const { data: conversation, error: convError } = await supabase
     .from("conversations")
     .select(`id, status, ai_paused, contacts ( id, name, phone )`)
     .eq("id", params.id)
     .eq("tenant_id", tenant.id)
     .single()
 
-  if (!conversation) notFound()
+  if (!conversation) {
+    return (
+      <div className="p-6 text-sm text-red-600 space-y-1">
+        <p><b>DEBUG:</b> Conversación no encontrada</p>
+        <p>params.id: {params.id}</p>
+        <p>tenant.id: {tenant.id}</p>
+        <p>error: {convError?.message ?? "ninguno"}</p>
+        <p>error code: {convError?.code ?? "—"}</p>
+      </div>
+    )
+  }
 
   const contact = Array.isArray(conversation.contacts)
     ? conversation.contacts[0]
