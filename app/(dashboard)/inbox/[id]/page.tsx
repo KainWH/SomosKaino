@@ -73,6 +73,7 @@ export default async function ConversationPage({ params }: { params: { id: strin
           messages={messages ?? []}
           avatarColor={avatarColor}
           contactInitial={displayName[0].toUpperCase()}
+          conversationId={conversation.id}
         />
       </div>
 

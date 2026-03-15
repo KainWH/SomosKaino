@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 type Message = {
   id: string
@@ -14,14 +15,52 @@ type Props = {
   messages: Message[]
   avatarColor: string
   contactInitial: string
+  conversationId: string
 }
 
-export default function MessagesView({ messages, avatarColor, contactInitial }: Props) {
+export default function MessagesView({ messages: initial, avatarColor, contactInitial, conversationId }: Props) {
+  const [messages, setMessages] = useState<Message[]>(initial)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  // Scroll to bottom on first load
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "instant" })
   }, [])
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages.length])
+
+  // Subscribe to new messages via Supabase Realtime
+  useEffect(() => {
+    const supabase = createClient()
+
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message
+          setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.some((m) => m.id === newMsg.id)) return prev
+            return [...prev, newMsg]
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [conversationId])
 
   if (messages.length === 0) {
     return (

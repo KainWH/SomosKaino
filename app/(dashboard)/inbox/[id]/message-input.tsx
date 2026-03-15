@@ -1,12 +1,10 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { useRouter } from "next/navigation"
 
 export default function MessageInput({ conversationId }: { conversationId: string }) {
   const [text, setText]       = useState("")
   const [sending, setSending] = useState(false)
-  const router = useRouter()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   async function handleSend() {
@@ -21,8 +19,7 @@ export default function MessageInput({ conversationId }: { conversationId: strin
 
     if (res.ok) {
       setText("")
-      // Recargar la página para ver el nuevo mensaje
-      router.refresh()
+      // Realtime subscription in MessagesView will pick up the new message automatically
     }
 
     setSending(false)
