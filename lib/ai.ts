@@ -22,6 +22,24 @@ export async function transcribeAudio(buffer: Buffer, mimeType: string): Promise
   return response.text?.trim() ?? ""
 }
 
+// Describe una imagen recibida por WhatsApp para pasarla al agente como contexto
+export async function describeImage(buffer: Buffer, mimeType: string): Promise<string> {
+  const base64 = buffer.toString("base64")
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [{
+      role: "user",
+      parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: "Describe brevemente qué muestra esta imagen en español, en máximo 2 oraciones. Solo la descripción, sin explicaciones adicionales." },
+      ],
+    }],
+  })
+
+  return response.text?.trim() ?? ""
+}
+
 export async function generateReply({
   userMessage,
   systemPrompt,

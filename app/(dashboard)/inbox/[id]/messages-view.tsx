@@ -8,6 +8,8 @@ type Message = {
   direction: "inbound" | "outbound"
   sent_by_ai: boolean
   created_at: string
+  message_type?: string
+  media_id?: string | null
 }
 
 type Props = {
@@ -112,7 +114,26 @@ export default function MessagesView({ messages: initial, avatarColor, contactIn
                       : "bg-green-600 text-white rounded-2xl rounded-br-sm shadow-sm"
                   }`}
                 >
-                  {msg.content}
+                  {msg.message_type === "audio" && msg.media_id ? (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xs opacity-70">🎤 Nota de voz</span>
+                      <audio
+                        controls
+                        preload="none"
+                        className="h-8 w-48 max-w-full"
+                        src={`/api/media/${msg.media_id}`}
+                      />
+                    </div>
+                  ) : msg.message_type === "image" && msg.media_id ? (
+                    <img
+                      src={`/api/media/${msg.media_id}`}
+                      alt="Imagen"
+                      className="rounded-xl max-w-[240px] max-h-[320px] object-cover cursor-pointer"
+                      onClick={() => window.open(`/api/media/${msg.media_id}`, "_blank")}
+                    />
+                  ) : (
+                    msg.content
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 px-1">
                   <span className="text-xs text-gray-400">{time}</span>

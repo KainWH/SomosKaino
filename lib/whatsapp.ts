@@ -70,6 +70,81 @@ export async function downloadMedia({
   }
 }
 
+// Sube un archivo de media a WhatsApp y devuelve su media_id
+export async function uploadMedia({
+  buffer,
+  mimeType,
+  filename,
+  phoneNumberId,
+  accessToken,
+}: {
+  buffer: Buffer
+  mimeType: string
+  filename: string
+  phoneNumberId: string
+  accessToken: string
+}): Promise<string | null> {
+  try {
+    const formData = new FormData()
+    formData.append("messaging_product", "whatsapp")
+    formData.append("file", new Blob([buffer], { type: mimeType }), filename)
+
+    const res = await fetch(`${WHATSAPP_API_URL}/${phoneNumberId}/media`, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body:    formData,
+    })
+    if (!res.ok) {
+      const err = await res.json()
+      console.error("❌ Error subiendo media:", JSON.stringify(err))
+      return null
+    }
+    const { id } = await res.json()
+    return id as string
+  } catch {
+    return null
+  }
+}
+
+// Envía una imagen o audio a WhatsApp usando un media_id ya subido
+export async function sendWhatsAppMedia({
+  to,
+  mediaId,
+  type,
+  phoneNumberId,
+  accessToken,
+}: {
+  to: string
+  mediaId: string
+  type: "image" | "audio" | "document"
+  phoneNumberId: string
+  accessToken: string
+}) {
+  const response = await fetch(
+    `${WHATSAPP_API_URL}/${phoneNumberId}/messages`,
+    {
+      method:  "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type":  "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type,
+        [type]: { id: mediaId },
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(`Error de WhatsApp API: ${JSON.stringify(error)}`)
+  }
+
+  return response.json()
+}
+
 // Marca un mensaje como leído (palomitas azules)
 export async function markAsRead({
   messageId,

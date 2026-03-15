@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { generateReply, transcribeAudio } from "@/lib/ai"
+import { generateReply, transcribeAudio, describeImage } from "@/lib/ai"
 import { sendWhatsAppMessage, markAsRead, downloadMedia } from "@/lib/whatsapp"
 import { getPropertyData } from "@/lib/sheets"
 
@@ -53,12 +53,26 @@ export async function POST(request: NextRequest) {
   const phoneNumberId    = value?.metadata?.phone_number_id
   const contactName: string | null = value?.contacts?.[0]?.profile?.name ?? null
 
-  // Solo procesamos texto y audio
-  if (message.type !== "text" && message.type !== "audio") {
+  // Solo procesamos texto, audio/voice e imágenes
+  const supported = ["text", "audio", "voice", "image"]
+  if (!supported.includes(message.type)) {
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
   const supabase = createServiceClient()
+
+  // ── DEDUPLICACIÓN: evitar procesar el mismo mensaje dos veces ──
+  // Meta puede reenviar el webhook si tarda en responder (p. ej. mientras la IA genera)
+  const { data: duplicate } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("whatsapp_message_id", whatsappMsgId)
+    .maybeSingle()
+
+  if (duplicate) {
+    console.log(`⏭️ Mensaje duplicado ignorado: ${whatsappMsgId}`)
+    return NextResponse.json({ status: "ok" }, { status: 200 })
+  }
 
   // ── PASO 1: Encontrar a qué tenant pertenece este número de WhatsApp ──
   const { data: whatsappConfig } = await supabase
@@ -80,24 +94,57 @@ export async function POST(request: NextRequest) {
   // textForDB  = lo que se guarda/muestra en el chat
   let textForAI = message.text?.body ?? ""
   let textForDB = textForAI
+  let messageType = "text"
+  let mediaId: string | null = null
 
-  if (message.type === "audio" && message.audio?.id) {
+  const isAudio = message.type === "audio" || message.type === "voice"
+  const audioId = message.audio?.id ?? message.voice?.id
+
+  if (isAudio && audioId) {
+    mediaId = audioId
+    messageType = "audio"
+
     const media = await downloadMedia({
-      mediaId:     message.audio.id,
+      mediaId:     audioId,
       accessToken: whatsappConfig.access_token!,
     })
     if (!media) {
       console.error("❌ No se pudo descargar el audio")
-      return NextResponse.json({ status: "ok" }, { status: 200 })
+      textForAI = "El usuario envió una nota de voz (no se pudo transcribir)"
+      textForDB = "🎤 Nota de voz"
+    } else {
+      const transcription = await transcribeAudio(media.buffer, media.mimeType)
+      if (!transcription) {
+        console.error("❌ No se pudo transcribir el audio")
+        textForAI = "El usuario envió una nota de voz (no se pudo transcribir)"
+      } else {
+        textForAI = transcription
+        console.log(`🎤 Audio transcrito de ${from}: "${transcription}"`)
+      }
+      textForDB = "🎤 Nota de voz"
     }
-    const transcription = await transcribeAudio(media.buffer, media.mimeType)
-    if (!transcription) {
-      console.error("❌ No se pudo transcribir el audio")
-      return NextResponse.json({ status: "ok" }, { status: 200 })
+  }
+
+  if (message.type === "image" && message.image?.id) {
+    mediaId = message.image.id
+    messageType = "image"
+
+    const media = await downloadMedia({
+      mediaId:     message.image.id,
+      accessToken: whatsappConfig.access_token!,
+    })
+    if (!media) {
+      console.error("❌ No se pudo descargar la imagen")
+      textForAI = "El usuario envió una imagen (no se pudo procesar)"
+      textForDB = "🖼️ Imagen"
+    } else {
+      const description = await describeImage(media.buffer, media.mimeType)
+      textForAI = description
+        ? `El usuario envió una imagen. Descripción: ${description}`
+        : "El usuario envió una imagen"
+      textForDB = "🖼️ Imagen"
+      console.log(`🖼️ Imagen recibida de ${from}: "${description}"`)
     }
-    textForAI = transcription          // el agente lee la transcripción completa
-    textForDB = "🎤 Nota de voz"       // en el chat solo se muestra esto
-    console.log(`🎤 Audio transcrito de ${from}: "${transcription}"`)
   }
 
   if (!textForAI) {
@@ -166,6 +213,8 @@ export async function POST(request: NextRequest) {
     direction:           "inbound",
     sent_by_ai:          false,
     whatsapp_message_id: whatsappMsgId,
+    message_type:        messageType,
+    ...(mediaId ? { media_id: mediaId } : {}),
   })
 
   console.log(`📩 Mensaje guardado de ${from}: "${textForDB}"`)
