@@ -32,6 +32,7 @@ export default async function DashboardPage() {
     { data: conversations },
     { data: products },
     { count: totalProducts },
+    { count: pendingOrders },
   ] = await Promise.all([
     supabase.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", today.toISOString()),
     supabase.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", weekAgo.toISOString()),
@@ -53,6 +54,7 @@ export default async function DashboardPage() {
       .select("id, name, price, currency, enabled, image_url")
       .eq("tenant_id", tenant.id).eq("enabled", true).order("name").limit(6),
     supabase.from("catalog_products").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("enabled", true),
+    supabase.from("orders").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("status", "pending"),
   ])
 
   // Calcular tendencias (evitar división por cero)
@@ -135,7 +137,7 @@ export default async function DashboardPage() {
 
         {/* Panel derecho — 2/5 */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          <QuickActions />
+          <QuickActions pendingOrders={pendingOrders ?? 0} />
           <ProductList products={(products ?? []) as any} />
         </div>
 
