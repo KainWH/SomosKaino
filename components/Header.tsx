@@ -2,6 +2,7 @@
 
 import { Bell, Search } from "lucide-react"
 import ThemeToggle from "@/components/theme-toggle"
+import { useState, useEffect } from "react"
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -11,16 +12,20 @@ function getGreeting() {
 }
 
 function getFormattedDate() {
-  return new Date().toLocaleDateString("es-DO", {
+  const d = new Date().toLocaleDateString("es-DO", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   })
+  return d.charAt(0).toUpperCase() + d.slice(1)
 }
 
 export default function Header({ name }: { name: string }) {
-  const greeting = getGreeting()
-  const date     = getFormattedDate()
-  // Capitalize first letter
-  const dateFormatted = date.charAt(0).toUpperCase() + date.slice(1)
+  const [greeting, setGreeting]         = useState("")
+  const [dateFormatted, setDateFormatted] = useState("")
+
+  useEffect(() => {
+    setGreeting(getGreeting())
+    setDateFormatted(getFormattedDate())
+  }, [])
 
   return (
     <header className="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-6 gap-4 shrink-0">
@@ -28,7 +33,7 @@ export default function Header({ name }: { name: string }) {
       {/* Saludo */}
       <div className="flex-1 min-w-0 hidden md:block">
         <p className="text-[13px] font-semibold text-gray-800 dark:text-gray-200 truncate">
-          {greeting}, {name} 👋
+          {greeting ? `${greeting}, ${name} 👋` : ""}
         </p>
         <p className="text-[10px] text-gray-400 truncate">{dateFormatted}</p>
       </div>
