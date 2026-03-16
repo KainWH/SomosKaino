@@ -113,7 +113,7 @@ export default function ConversationList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{name}</span>
-                    <span className="text-[10px] text-gray-400 shrink-0">{formatTime(conv.updated_at)}</span>
+                    <span className="text-[10px] text-gray-400 shrink-0" suppressHydrationWarning>{formatTime(conv.updated_at)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-gray-400 truncate flex-1">{preview}</p>
