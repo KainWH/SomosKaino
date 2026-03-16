@@ -32,7 +32,7 @@ export default function ProductList({ products }: { products: Product[] }) {
   const list = products.slice(0, 10)
 
   return (
-    <div className="flex-1 bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-800/60 overflow-hidden flex flex-col">
+    <div className="h-full bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-800/60 overflow-hidden flex flex-col">
       <div className="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-slate-200">Productos</h2>

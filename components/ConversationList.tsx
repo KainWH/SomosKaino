@@ -77,7 +77,7 @@ export default function ConversationList({
     .slice(0, 6)
 
   return (
-    <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-800/60 overflow-hidden flex flex-col">
+    <div className="h-full bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-800/60 overflow-hidden flex flex-col">
 
       {/* Header */}
       <div className="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between gap-3">

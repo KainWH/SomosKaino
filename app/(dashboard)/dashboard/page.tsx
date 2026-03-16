@@ -138,15 +138,15 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Contenido principal ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 flex-1 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 flex-1 min-h-0 items-stretch">
 
         {/* Conversaciones — 3/5 */}
-        <div className="lg:col-span-3 min-h-0">
+        <div className="lg:col-span-3 h-full min-h-0">
           <ConversationList conversations={(conversations ?? []) as any} />
         </div>
 
-        {/* Panel derecho — 2/5 */}
-        <div className="lg:col-span-2 flex flex-col gap-5 min-h-0">
+        {/* Panel derecho — 2/5: grid de 2 filas, QuickActions fijo + ProductList llena el resto */}
+        <div className="lg:col-span-2 grid grid-rows-[auto_1fr] gap-5 min-h-0">
           <QuickActions />
           <ProductList products={(products ?? []) as any} />
         </div>
