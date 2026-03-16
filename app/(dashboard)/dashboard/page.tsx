@@ -75,7 +75,7 @@ export default async function DashboardPage() {
   const ordersSparkline = [0, pendingOrders ?? 0]
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-7xl">
+    <div className="p-6 flex flex-col gap-6 max-w-7xl h-full">
 
       {/* ── Alerta setup ── */}
       {!isSetupDone && (
@@ -138,19 +138,17 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Contenido principal ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 flex-1 min-h-0">
 
         {/* Conversaciones — 3/5 */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 min-h-0">
           <ConversationList conversations={(conversations ?? []) as any} />
         </div>
 
         {/* Panel derecho — 2/5 */}
         <div className="lg:col-span-2 flex flex-col gap-5 min-h-0">
           <QuickActions />
-          <div className="flex-1 min-h-0">
-            <ProductList products={(products ?? []) as any} />
-          </div>
+          <ProductList products={(products ?? []) as any} />
         </div>
 
       </div>
