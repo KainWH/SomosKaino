@@ -34,8 +34,9 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Si intenta entrar al dashboard sin sesión → redirigir a /login
-  const protectedPaths = ["/dashboard", "/inbox", "/contacts", "/settings"]
-  const isProtected = protectedPaths.some(p => path.startsWith(p))
+  const publicPaths = ["/login", "/register", "/api"]
+  const isPublic = publicPaths.some(p => path.startsWith(p)) || path === "/"
+  const isProtected = !isPublic
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone()
