@@ -47,6 +47,9 @@ export default async function DashboardLayout({
           <a href="/contacts" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
             👥 Contactos
           </a>
+          <a href="/knowledge" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
+            🧠 Conocimiento
+          </a>
           <a href="/settings" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
             ⚙️ Configuración
           </a>

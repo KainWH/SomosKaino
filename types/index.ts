@@ -79,3 +79,15 @@ export type MessageWithConversation = Message & {
     contacts: Contact
   }
 }
+
+// ── DOCUMENTO DE CONOCIMIENTO ──
+// Texto libre que el agente usa como fuente de conocimiento (FAQ, precios, políticas, etc.)
+export type KnowledgeDocument = {
+  id:         string
+  tenant_id:  string
+  name:       string    // "Lista de precios", "Políticas de envío", etc.
+  content:    string    // Contenido en texto plano
+  enabled:    boolean
+  created_at: string
+  updated_at: string
+}

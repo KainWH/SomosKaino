@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import WhatsappForm from "./whatsapp-form"
 import AiForm from "./ai-form"
-import CatalogForm from "./catalog-form"
 
 export default async function SettingsPage() {
   const supabase = createClient()
@@ -23,7 +22,7 @@ export default async function SettingsPage() {
   if (!tenant) redirect("/login")
 
   // Cargar configuraciones actuales en paralelo
-  const [{ data: whatsappConfig }, { data: aiConfig }, { data: catalogConfig }] = await Promise.all([
+  const [{ data: whatsappConfig }, { data: aiConfig }] = await Promise.all([
     supabase
       .from("whatsapp_configs")
       .select("*")
@@ -34,11 +33,6 @@ export default async function SettingsPage() {
       .select("*")
       .eq("tenant_id", tenant.id)
       .single(),
-    supabase
-      .from("catalog_configs")
-      .select("sheet_url, sheet_id, sheet_gid")
-      .eq("tenant_id", tenant.id)
-      .maybeSingle(),
   ])
 
   return (
@@ -51,7 +45,13 @@ export default async function SettingsPage() {
 
       <WhatsappForm config={whatsappConfig} />
       <AiForm config={aiConfig} />
-      <CatalogForm config={catalogConfig} />
+
+      <div className="bg-gray-50 border border-dashed rounded-xl p-4 text-sm text-gray-500 text-center">
+        El catálogo de productos se gestiona en{" "}
+        <a href="/knowledge" className="text-green-600 font-medium hover:underline">
+          Base de Conocimiento
+        </a>
+      </div>
     </div>
     </div>
   )

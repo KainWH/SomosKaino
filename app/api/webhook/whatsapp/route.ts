@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js"
 import { generateReply, transcribeAudio, describeImage } from "@/lib/ai"
 import { sendWhatsAppMessage, sendWhatsAppMedia, uploadMedia, markAsRead, downloadMedia } from "@/lib/whatsapp"
 import { getPropertyData, findImageUrl } from "@/lib/sheets"
+import { fetchCatalogProducts, catalogProductsToText } from "@/lib/whatsapp-catalog"
 
 // Deduplicación en memoria — evita reprocesar si Meta reenvía el webhook
 const recentlyProcessed = new Set<string>()
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
   // ── PASO 1: Tenant ──
   const { data: whatsappConfig } = await supabase
     .from("whatsapp_configs")
-    .select("tenant_id, access_token, phone_number_id")
+    .select("tenant_id, access_token, phone_number_id, catalog_id")
     .eq("phone_number_id", phoneNumberId)
     .single()
 
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
   // Cargar config del catálogo del tenant
   const { data: catalogConfig } = await supabase
     .from("catalog_configs")
-    .select("sheet_id, sheet_gid")
+    .select("sheet_id, sheet_gid, enabled")
     .eq("tenant_id", tenantId)
     .maybeSingle()
 
@@ -293,10 +294,47 @@ export async function POST(request: NextRequest) {
       content: msg.content,
     }))
 
-  // Datos del Sheet del tenant
-  const sheetData = await getPropertyData(catalogConfig?.sheet_id, catalogConfig?.sheet_gid)
-  const basePrompt = sheetData.text
-    ? `${aiConfig.system_prompt}\n\n## Inventario de productos:\n${sheetData.text}`
+  // ── Fuentes de conocimiento ──
+
+  // 1. Google Sheets (solo si está habilitado)
+  const sheetsEnabled = catalogConfig?.enabled !== false
+  const sheetData = sheetsEnabled
+    ? await getPropertyData(catalogConfig?.sheet_id, catalogConfig?.sheet_gid)
+    : { text: "", imageMap: {} }
+
+  // 2. Catálogo de WhatsApp Business (si tiene catalog_id configurado)
+  let waCatalogText = ""
+  if (whatsappConfig.catalog_id) {
+    const { products } = await fetchCatalogProducts(
+      whatsappConfig.catalog_id,
+      whatsappConfig.access_token!
+    )
+    if (products.length > 0) {
+      waCatalogText = catalogProductsToText(products)
+    }
+  }
+
+  // 3. Documentos de conocimiento (solo los habilitados)
+  const { data: knowledgeDocs } = await supabase
+    .from("knowledge_documents")
+    .select("name, content")
+    .eq("tenant_id", tenantId)
+    .eq("enabled", true)
+
+  const docsText = (knowledgeDocs ?? [])
+    .map(doc => `## ${doc.name}:\n${doc.content}`)
+    .join("\n\n")
+
+  // Construir contexto de conocimiento combinado
+  const knowledgeParts: string[] = []
+  if (waCatalogText)  knowledgeParts.push(`## Catálogo de productos (WhatsApp):\n${waCatalogText}`)
+  if (sheetData.text) knowledgeParts.push(`## Inventario (Google Sheets):\n${sheetData.text}`)
+  if (docsText)       knowledgeParts.push(docsText)
+
+  const knowledgeContext = knowledgeParts.join("\n\n")
+
+  const basePrompt = knowledgeContext
+    ? `${aiConfig.system_prompt}\n\n${knowledgeContext}`
     : aiConfig.system_prompt
 
   const systemPrompt = history.length > 0
