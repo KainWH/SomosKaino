@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import SheetsSource from "./sheets-source"
 import DocumentsSource from "./documents-source"
+import WhatsappCatalogSource from "./whatsapp-catalog-source"
 
 export default async function KnowledgePage() {
   const supabase = createClient()
@@ -24,6 +25,7 @@ export default async function KnowledgePage() {
     { data: catalogConfig },
     { data: documents },
     { data: rentiaProducts },
+    { data: whatsappConfig },
   ] = await Promise.all([
     supabase
       .from("catalog_configs")
@@ -39,6 +41,11 @@ export default async function KnowledgePage() {
       .from("catalog_products")
       .select("id, enabled")
       .eq("tenant_id", tenant.id),
+    supabase
+      .from("whatsapp_configs")
+      .select("catalog_id, access_token")
+      .eq("tenant_id", tenant.id)
+      .single(),
   ])
 
   const rentiaActive = (rentiaProducts ?? []).filter(p => p.enabled).length
@@ -129,6 +136,18 @@ export default async function KnowledgePage() {
 
         {/* ── Fuente 3: Documentos ── */}
         <DocumentsSource documents={documents ?? []} />
+
+        {/* ── Publicación en WhatsApp Business (no es fuente, es destino) ── */}
+        <div className="border-t pt-6">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
+            Distribución
+          </p>
+          <WhatsappCatalogSource
+            catalogId={whatsappConfig?.catalog_id ?? null}
+            isConfigured={!!(whatsappConfig?.access_token)}
+            rentiaCount={rentiaActive}
+          />
+        </div>
 
       </div>
     </div>

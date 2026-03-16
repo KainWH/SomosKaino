@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { fetchCatalogProducts } from "@/lib/whatsapp-catalog"
+import { syncAllProductsToMeta } from "@/lib/whatsapp-catalog"
 
-// POST — guardar catalog_id y sincronizar productos desde Meta API
+// POST — conectar catalog_id y subir todos los productos existentes de RentIA a Meta
 export async function POST(request: NextRequest) {
   const supabase = createClient()
 
@@ -15,10 +15,9 @@ export async function POST(request: NextRequest) {
 
   const { catalog_id } = await request.json()
 
-  // Necesitamos el access_token de WhatsApp para consultar Meta API
   const { data: waConfig } = await supabase
     .from("whatsapp_configs")
-    .select("access_token")
+    .select("access_token, catalog_id")
     .eq("tenant_id", tenant.id)
     .single()
 
@@ -29,7 +28,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Guardar el catalog_id (o null para desconectar)
+  const isNewConnection = !waConfig.catalog_id && !!catalog_id?.trim()
+
+  // Guardar el catalog_id
   const { error: saveError } = await supabase
     .from("whatsapp_configs")
     .update({ catalog_id: catalog_id?.trim() || null })
@@ -38,21 +39,43 @@ export async function POST(request: NextRequest) {
   if (saveError) return NextResponse.json({ error: saveError.message }, { status: 500 })
 
   if (!catalog_id?.trim()) {
-    return NextResponse.json({ success: true, products: [], count: 0 })
+    return NextResponse.json({ success: true, synced: 0 })
   }
 
-  // Obtener productos del catálogo de Meta
-  const { products, error: fetchError } = await fetchCatalogProducts(
-    catalog_id.trim(),
-    waConfig.access_token
-  )
+  // Obtener todos los productos activos de RentIA
+  const { data: products } = await supabase
+    .from("catalog_products")
+    .select("id, name, description, price, currency, image_url")
+    .eq("tenant_id", tenant.id)
+    .eq("enabled", true)
 
-  if (fetchError) {
+  if (!products || products.length === 0) {
+    return NextResponse.json({
+      success: true,
+      synced:  0,
+      message: isNewConnection
+        ? "Catálogo conectado. Crea productos en RentIA y se publicarán automáticamente."
+        : "No hay productos activos para sincronizar.",
+    })
+  }
+
+  // Subir todos los productos a Meta (bulk upsert)
+  const result = await syncAllProductsToMeta({
+    catalogId:   catalog_id.trim(),
+    accessToken: waConfig.access_token,
+    products,
+  })
+
+  if (!result.success) {
     return NextResponse.json(
-      { error: `No se pudo acceder al catálogo: ${fetchError}` },
+      { error: `Catálogo guardado, pero no se pudo subir productos: ${result.error}` },
       { status: 400 }
     )
   }
 
-  return NextResponse.json({ success: true, products, count: products.length })
+  return NextResponse.json({
+    success: true,
+    synced:  result.synced,
+    message: `${result.synced} producto${result.synced !== 1 ? "s" : ""} subido${result.synced !== 1 ? "s" : ""} a WhatsApp Business`,
+  })
 }
