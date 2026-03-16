@@ -11,10 +11,10 @@ type Action = {
 }
 
 const actions: Action[] = [
-  { label: "Configuración", href: "/settings", icon: Settings, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/15", glow: "group-hover:shadow-orange-500/10" },
-  { label: "Inventario", href: "/inventory", icon: Package,  color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/15",       glow: "group-hover:shadow-blue-500/10" },
-  { label: "Clientes",   href: "/contacts",  icon: Users,    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/15", glow: "group-hover:shadow-emerald-500/10" },
-  { label: "Reportes",   href: "/reports",   icon: BarChart2, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20 group-hover:bg-purple-500/15", glow: "group-hover:shadow-purple-500/10" },
+  { label: "Inventario",    href: "/inventory", icon: Package,   color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/15",       glow: "group-hover:shadow-blue-500/10" },
+  { label: "Reportes",     href: "/reports",   icon: BarChart2, color: "text-purple-400",  bg: "bg-purple-500/10 border-purple-500/20 group-hover:bg-purple-500/15", glow: "group-hover:shadow-purple-500/10" },
+  { label: "Clientes",     href: "/contacts",  icon: Users,     color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/15", glow: "group-hover:shadow-emerald-500/10" },
+  { label: "Configuración", href: "/settings", icon: Settings,  color: "text-orange-400",  bg: "bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/15", glow: "group-hover:shadow-orange-500/10" },
 ]
 
 export default function QuickActions() {
