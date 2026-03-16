@@ -82,25 +82,25 @@ export default function ConversationList({
       {/* Header */}
       <div className="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-200">Conversaciones activas</h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">WhatsApp en tiempo real</p>
+          <h2 className="text-base font-semibold text-slate-200">Conversaciones activas</h2>
+          <p className="text-xs text-slate-500 mt-0.5">WhatsApp en tiempo real</p>
         </div>
-        <Link href="/inbox" className="text-[11px] text-blue-400 font-medium flex items-center gap-0.5 hover:text-blue-300 transition-colors shrink-0">
-          Ver todas <ChevronRight size={11} />
+        <Link href="/inbox" className="text-xs text-blue-400 font-medium flex items-center gap-0.5 hover:text-blue-300 transition-colors shrink-0">
+          Ver todas <ChevronRight size={13} />
         </Link>
       </div>
 
       {/* Búsqueda */}
       <div className="px-4 py-3 border-b border-slate-800/40">
         <div className="relative">
-          <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar conversación..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-800/50 border border-slate-700/40
-              rounded-lg text-slate-300 placeholder-slate-600
+            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-800/50 border border-slate-700/40
+              rounded-xl text-slate-300 placeholder-slate-600
               focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
           />
         </div>
@@ -109,9 +109,9 @@ export default function ConversationList({
       {/* Lista */}
       <div className="divide-y divide-slate-800/40 flex-1 overflow-y-auto">
         {open.length === 0 ? (
-          <div className="py-12 flex flex-col items-center gap-2 text-slate-600">
-            <Bot size={26} strokeWidth={1.5} />
-            <p className="text-sm">Sin conversaciones activas</p>
+          <div className="py-16 flex flex-col items-center gap-3 text-slate-600">
+            <Bot size={36} strokeWidth={1.5} />
+            <p className="text-base">Sin conversaciones activas</p>
           </div>
         ) : (
           open.map((conv) => {
@@ -129,7 +129,7 @@ export default function ConversationList({
               <Link
                 key={conv.id}
                 href={`/inbox/${conv.id}`}
-                className={`flex items-center gap-3 px-4 py-3.5 transition-all duration-150 border-l-2 ${
+                className={`flex items-center gap-4 px-5 py-4 transition-all duration-150 border-l-2 ${
                   isActive
                     ? "border-l-blue-500 bg-blue-500/5"
                     : "border-l-transparent hover:bg-slate-800/40"
@@ -137,25 +137,25 @@ export default function ConversationList({
               >
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarColor(name)} flex items-center justify-center shadow-sm`}>
-                    <span className="text-[11px] font-bold text-white">{initials}</span>
+                  <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColor(name)} flex items-center justify-center shadow-md`}>
+                    <span className="text-sm font-bold text-white">{initials}</span>
                   </div>
                   {!conv.ai_paused && (
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-400 border-2 border-slate-900 rounded-full" />
+                    <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-900 rounded-full" />
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-[13px] font-semibold text-slate-200 truncate">{name}</span>
-                    <span className="text-[10px] text-slate-600 shrink-0" suppressHydrationWarning>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[15px] font-semibold text-slate-200 truncate">{name}</span>
+                    <span className="text-xs text-slate-500 shrink-0" suppressHydrationWarning>
                       {formatTime(conv.updated_at)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-[11px] text-slate-500 truncate flex-1">{preview}</p>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${tag.color}`}>
+                    <p className="text-sm text-slate-500 truncate flex-1">{preview}</p>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${tag.color}`}>
                       {tag.label}
                     </span>
                   </div>
