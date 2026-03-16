@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { MessageCircle, Users, Bot, Tag } from "lucide-react"
+import { MessageCircle, Users, Bot, ShoppingCart } from "lucide-react"
 import MetricCard       from "@/components/MetricCard"
 import ConversationList from "@/components/ConversationList"
 import ProductList      from "@/components/ProductList"
@@ -118,12 +118,12 @@ export default async function DashboardPage() {
           color="purple"
         />
         <MetricCard
-          label="Productos activos"
-          value={totalProducts ?? 0}
-          sublabel="En catálogo"
-          icon={Tag}
+          label="Pedidos pendientes"
+          value={pendingOrders ?? 0}
+          sublabel="Sin gestionar"
+          icon={ShoppingCart}
           color="amber"
-          href="/catalog"
+          href="/orders"
         />
       </div>
 
@@ -137,7 +137,7 @@ export default async function DashboardPage() {
 
         {/* Panel derecho — 2/5 */}
         <div className="lg:col-span-2 flex flex-col gap-5">
-          <QuickActions pendingOrders={pendingOrders ?? 0} />
+          <QuickActions />
           <ProductList products={(products ?? []) as any} />
         </div>
 
