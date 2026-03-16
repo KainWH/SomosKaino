@@ -30,17 +30,23 @@ export default async function InboxPage() {
     .order("updated_at", { ascending: false })
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-      <div className="flex flex-col gap-5 max-w-2xl">
+    <div className="flex flex-col h-full">
+      {/* Header fijo */}
+      <div className="px-6 h-14 flex items-center border-b border-gray-100 bg-white shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inbox</h1>
-          <p className="text-gray-500 text-sm">Tus conversaciones de WhatsApp</p>
+          <h1 className="text-[15px] font-semibold text-gray-900">Inbox</h1>
+          <p className="text-[11px] text-gray-400 leading-none mt-0.5">Conversaciones de WhatsApp</p>
         </div>
+      </div>
 
-        <InboxList
-          initialConversations={(conversations ?? []) as any}
-          tenantId={tenant.id}
-        />
+      {/* Lista scrolleable */}
+      <div className="flex-1 overflow-auto p-5">
+        <div className="max-w-2xl flex flex-col gap-4">
+          <InboxList
+            initialConversations={(conversations ?? []) as any}
+            tenantId={tenant.id}
+          />
+        </div>
       </div>
     </div>
   )

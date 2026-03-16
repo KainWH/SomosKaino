@@ -1,10 +1,7 @@
-// Layout del dashboard — Server Component (sin "use client")
-// Al ser Server Component puede leer de Supabase directamente
-// sin exponer datos sensibles al navegador
-
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import LogoutButton from "@/components/logout-button"
+import SidebarNav from "@/components/sidebar-nav"
 
 export default async function DashboardLayout({
   children,
@@ -13,57 +10,51 @@ export default async function DashboardLayout({
 }) {
   const supabase = createClient()
 
-  // Obtener el usuario actual
-  // Si no hay sesión, el middleware ya redirige — esto es una segunda defensa
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  // Obtener el tenant del usuario para mostrar su nombre
   const { data: tenant } = await supabase
     .from("tenants")
     .select("name")
     .eq("owner_id", user.id)
-    .single()  // .single() devuelve un objeto en vez de un array (sabemos que hay 1)
+    .single()
 
   return (
     <div className="flex h-screen bg-gray-50">
 
       {/* ── SIDEBAR ── */}
-      <aside className="w-64 bg-white border-r flex flex-col">
+      <aside className="w-56 bg-white border-r border-gray-100 flex flex-col shrink-0">
 
         {/* Logo */}
-        <div className="p-4 border-b">
-          <span className="text-lg font-bold text-green-600">RentIA</span>
+        <div className="px-5 h-14 flex items-center border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="w-4 h-4">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+              </svg>
+            </div>
+            <span className="text-[15px] font-bold text-gray-900 tracking-tight">RentIA</span>
+          </div>
         </div>
 
         {/* Navegación */}
-        <nav className="flex-1 p-4 flex flex-col gap-1">
-          <a href="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
-            📊 Dashboard
-          </a>
-          <a href="/inbox" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
-            💬 Inbox
-          </a>
-          <a href="/contacts" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
-            👥 Contactos
-          </a>
-          <a href="/catalog" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
-            📦 Catálogo
-          </a>
-          <a href="/knowledge" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
-            🧠 Conocimiento
-          </a>
-          <a href="/settings" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100">
-            ⚙️ Configuración
-          </a>
-        </nav>
+        <SidebarNav />
 
         {/* Info del usuario + logout */}
-        <div className="p-4 border-t flex flex-col gap-1">
-          <p className="text-xs font-medium text-gray-700 truncate">
-            {tenant?.name ?? "Mi cuenta"}
-          </p>
-          <p className="text-xs text-gray-400 truncate">{user.email}</p>
+        <div className="px-3 py-3 border-t border-gray-100">
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg">
+            <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <span className="text-xs font-bold text-green-700">
+                {(tenant?.name ?? user.email ?? "U")[0].toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-800 truncate">
+                {tenant?.name ?? "Mi cuenta"}
+              </p>
+              <p className="text-[10px] text-gray-400 truncate">{user.email}</p>
+            </div>
+          </div>
           <LogoutButton />
         </div>
 

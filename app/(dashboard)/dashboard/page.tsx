@@ -65,22 +65,26 @@ export default async function DashboardPage() {
   const stepsLeft  = [step2, step3, step4].filter(s => !s).length
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-      <div className="flex flex-col gap-6 max-w-3xl">
+    <div className="flex flex-col h-full">
 
-        {/* Header */}
+      {/* Header fijo */}
+      <div className="px-6 h-14 flex items-center border-b border-gray-100 bg-white shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-[15px] font-semibold text-gray-900">
             {allDone ? "Dashboard" : `Hola, ${tenant.name} 👋`}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <p className="text-[11px] text-gray-400 leading-none mt-0.5">
             {allDone
               ? "Resumen de tu actividad de hoy"
               : stepsLeft === 1
                 ? "Un paso más y tu agente estará listo"
-                : `Completa ${stepsLeft} pasos para activar tu agente de WhatsApp`}
+                : `Completa ${stepsLeft} pasos para activar tu agente`}
           </p>
         </div>
+      </div>
+
+      <div className="flex-1 overflow-auto p-6">
+      <div className="flex flex-col gap-6 max-w-3xl">
 
         {/* ── CHECKLIST DE SETUP (mientras no esté todo listo) ── */}
         {!allDone && (
@@ -182,24 +186,32 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* ── MÉTRICAS (siempre visibles) ── */}
-        {allDone && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricCard label="Conversaciones hoy" value={conversationsToday ?? 0} icon="💬" />
-            <MetricCard label="Leads nuevos"        value={leadsToday ?? 0}         icon="👤" />
-            <MetricCard label="Respuestas con IA"   value={aiReplies ?? 0}          icon="🤖" />
-          </div>
-        )}
+        {/* ── MÉTRICAS ── */}
+        <div className="grid grid-cols-3 gap-4">
+          <MetricCard
+            label="Conversaciones"
+            sublabel="hoy"
+            value={conversationsToday ?? 0}
+            color="blue"
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="w-5 h-5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>}
+          />
+          <MetricCard
+            label="Leads nuevos"
+            sublabel="hoy"
+            value={leadsToday ?? 0}
+            color="green"
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="w-5 h-5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>}
+          />
+          <MetricCard
+            label="Respuestas IA"
+            sublabel="hoy"
+            value={aiReplies ?? 0}
+            color="purple"
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="w-5 h-5"><path d="M12 2a7 7 0 017 7c0 3.5-2.5 5.5-3 8H8c-.5-2.5-3-4.5-3-8a7 7 0 017-7z"/><path d="M9 21h6M10 17h4"/></svg>}
+          />
+        </div>
 
-        {/* Métricas pequeñas si setup en progreso */}
-        {!allDone && (conversationsToday ?? 0) + (leadsToday ?? 0) > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            <SmallMetric label="Conversaciones hoy" value={conversationsToday ?? 0} />
-            <SmallMetric label="Leads nuevos"        value={leadsToday ?? 0} />
-            <SmallMetric label="Respuestas IA"       value={aiReplies ?? 0} />
-          </div>
-        )}
-
+      </div>
       </div>
     </div>
   )
@@ -208,42 +220,42 @@ export default async function DashboardPage() {
 // ── Componentes ──
 
 function SetupStep({
-  done, icon, title, description, cta, ctaSecondary,
+  done, title, description, cta, ctaSecondary,
 }: {
   done:           boolean
-  icon:           string
+  icon?:          string
   title:          string
   description:    string
   cta?:           { label: string; href: string }
   ctaSecondary?:  { label: string; href: string }
 }) {
   return (
-    <div className={`flex items-start gap-4 p-5 ${done ? "opacity-60" : ""}`}>
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 ${
-        done ? "bg-green-100" : "bg-gray-100"
+    <div className={`flex items-start gap-4 p-5 transition-opacity ${done ? "opacity-50" : ""}`}>
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 ${
+        done ? "border-green-500 bg-green-50" : "border-gray-200 bg-white"
       }`}>
-        {done ? "✅" : icon}
+        {done ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-green-600">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        ) : (
+          <div className="w-2 h-2 rounded-full bg-gray-300" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold ${done ? "text-gray-500 line-through" : "text-gray-900"}`}>
+        <p className={`text-sm font-semibold ${done ? "text-gray-400" : "text-gray-900"}`}>
           {title}
         </p>
-        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{description}</p>
         {(cta || ctaSecondary) && (
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-3">
             {cta && (
-              <a
-                href={cta.href}
-                className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-800"
-              >
+              <a href={cta.href} className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
                 {cta.label} →
               </a>
             )}
             {ctaSecondary && (
-              <a
-                href={ctaSecondary.href}
-                className="text-xs border text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50"
-              >
+              <a href={ctaSecondary.href} className="text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                 {ctaSecondary.label}
               </a>
             )}
@@ -254,21 +266,29 @@ function SetupStep({
   )
 }
 
-function MetricCard({ label, value, icon }: { label: string; value: number; icon: string }) {
-  return (
-    <div className="bg-white border rounded-xl p-5">
-      <div className="text-2xl mb-2">{icon}</div>
-      <div className="text-3xl font-bold text-gray-900">{value}</div>
-      <div className="text-sm text-gray-500 mt-1">{label}</div>
-    </div>
-  )
-}
+const metricColors = {
+  blue:   { bg: "bg-blue-50",   icon: "text-blue-500",   value: "text-blue-700" },
+  green:  { bg: "bg-green-50",  icon: "text-green-500",  value: "text-green-700" },
+  purple: { bg: "bg-purple-50", icon: "text-purple-500", value: "text-purple-700" },
+} as const
 
-function SmallMetric({ label, value }: { label: string; value: number }) {
+function MetricCard({ label, sublabel, value, icon, color }: {
+  label:    string
+  sublabel: string
+  value:    number
+  icon:     React.ReactNode
+  color:    keyof typeof metricColors
+}) {
+  const c = metricColors[color]
   return (
-    <div className="bg-white border rounded-xl p-3 text-center">
-      <p className="text-xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+    <div className="bg-white border border-gray-100 rounded-xl p-5 flex flex-col gap-3">
+      <div className={`w-9 h-9 rounded-lg ${c.bg} ${c.icon} flex items-center justify-center`}>
+        {icon}
+      </div>
+      <div>
+        <p className={`text-2xl font-bold ${c.value}`}>{value}</p>
+        <p className="text-sm text-gray-500 mt-0.5">{label} <span className="text-gray-400 text-xs">/ {sublabel}</span></p>
+      </div>
     </div>
   )
 }
