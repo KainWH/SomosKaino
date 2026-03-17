@@ -408,10 +408,29 @@ export async function POST(request: NextRequest) {
     console.log(`📝 Nota guardada para ${from}: "${leadNotes}"`)
   }
 
-  // ── Handover: pausar IA y transferir a humano ──
+  // ── Handover: pausar IA y notificar asesores ──
   if (handover) {
     await supabase.from("conversations").update({ ai_paused: true }).eq("id", conversationId)
     console.log(`🤝 Handover activado para conversación ${conversationId} — IA pausada`)
+
+    // Obtener nombre del contacto para la notificación
+    const { data: contactInfo } = await supabase
+      .from("contacts").select("name, phone").eq("id", contact.id).single()
+    const clientName = contactInfo?.name ?? contactInfo?.phone ?? from
+    const alertMsg   = `🔔 *Atención requerida*\n\nEl cliente *${clientName}* (${from}) necesita asistencia en WhatsApp.\n\n👉 Revisa la conversación en el inbox.`
+
+    const ALERT_NUMBERS = ["18094173098", "18292856400"]
+    await Promise.allSettled(
+      ALERT_NUMBERS.map((num) =>
+        sendWhatsAppMessage({
+          to:            num,
+          message:       alertMsg,
+          phoneNumberId: whatsappConfig.phone_number_id!,
+          accessToken:   whatsappConfig.access_token!,
+        })
+      )
+    )
+    console.log(`📲 Notificación de handover enviada a: ${ALERT_NUMBERS.join(", ")}`)
   }
 
   // ── Enviar ubicación de la tienda si el AI lo indicó ──
