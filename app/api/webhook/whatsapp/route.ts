@@ -416,8 +416,9 @@ export async function POST(request: NextRequest) {
     // Obtener nombre del contacto para la notificación
     const { data: contactInfo } = await supabase
       .from("contacts").select("name, phone").eq("id", contact.id).single()
-    const clientName = contactInfo?.name ?? contactInfo?.phone ?? from
-    const alertMsg   = `🔔 *Atención requerida*\n\nEl cliente *${clientName}* (${from}) necesita asistencia en WhatsApp.\n\n👉 Revisa la conversación en el inbox.`
+    const clientName  = contactInfo?.name ?? contactInfo?.phone ?? from
+    const orderDetail = leadNotes ? `\n\n📋 *Detalle:* ${leadNotes}` : ""
+    const alertMsg    = `🛒 *Pedido confirmado*\n\nCliente: *${clientName}*\nTeléfono: ${from}${orderDetail}\n\n👉 Coordina el pago y la entrega.`
 
     const ALERT_NUMBERS = ["18094173098", "18292856400"]
     await Promise.allSettled(
