@@ -18,6 +18,9 @@
 /* Scroll suave en todo el sitio */
 * { scroll-behavior: smooth; }
 
+/* Offset para navbar fijo en la landing */
+html { scroll-padding-top: 4.5rem; }
+
 /* Scrollbar elegante */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

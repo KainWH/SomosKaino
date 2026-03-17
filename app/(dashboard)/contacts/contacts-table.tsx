@@ -228,7 +228,7 @@ export default function ContactsTable({ leads: initial, tenantId }: { leads: Lea
         {/* ── Search + Filters ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {/* Search */}
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 sm:max-w-xs">
             <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" />
             <input
               type="text" value={search} onChange={(e) => setSearch(e.target.value)}

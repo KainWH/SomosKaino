@@ -20,7 +20,7 @@ export default function OrdersPage() {
             Aquí podrás ver todos tus pedidos, cambiar estados (pendiente → enviado → entregado)
             y hacer seguimiento de cada venta.
           </p>
-          <div className="grid grid-cols-3 gap-3 text-left mb-6">
+          <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 text-left mb-6 w-full max-w-xs mx-auto sm:max-w-none">
             {[
               { icon: "🟡", label: "Pendientes", val: "0" },
               { icon: "🔵", label: "Enviados", val: "0" },

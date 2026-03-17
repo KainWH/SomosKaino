@@ -35,7 +35,7 @@ export default async function InventoryPage() {
         <div className="max-w-4xl flex flex-col gap-6">
 
           {/* Resumen */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{(products ?? []).length}</p>
               <p className="text-sm text-gray-500 mt-1">Total productos</p>
@@ -51,7 +51,7 @@ export default async function InventoryPage() {
           </div>
 
           {/* Lista */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden overflow-x-auto">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Todos los productos</h2>
             </div>
