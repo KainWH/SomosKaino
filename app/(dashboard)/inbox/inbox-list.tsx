@@ -182,7 +182,7 @@ export default function InboxList({ initialConversations, tenantId }: { initialC
                         {displayName}
                       </span>
                       <span className="text-[10px] text-slate-600 shrink-0" suppressHydrationWarning>
-                        {formatDate(conv.updated_at)}
+                        {formatDate(lastMsg?.created_at ?? conv.updated_at)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
