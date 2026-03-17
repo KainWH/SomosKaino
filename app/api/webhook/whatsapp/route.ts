@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateReply, transcribeAudio, describeImage } from "@/lib/ai"
-import { sendWhatsAppMessage, sendWhatsAppMedia, uploadMedia, markAsRead, downloadMedia } from "@/lib/whatsapp"
+import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppLocation, uploadMedia, markAsRead, downloadMedia } from "@/lib/whatsapp"
 import { getPropertyData, findImageUrl } from "@/lib/sheets"
 
 // Deduplicación en memoria — evita reprocesar si Meta reenvía el webhook
@@ -390,7 +390,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
-  const { reply, productName } = aiReply
+  const { reply, productName, sendLocation } = aiReply
+
+  // ── Enviar ubicación de la tienda si el AI lo indicó ──
+  if (sendLocation) {
+    const lat     = parseFloat(process.env.STORE_LATITUDE  ?? "0")
+    const lng     = parseFloat(process.env.STORE_LONGITUDE ?? "0")
+    const name    = process.env.STORE_NAME    ?? "Nuestra tienda"
+    const address = process.env.STORE_ADDRESS ?? ""
+
+    if (lat && lng) {
+      try {
+        const sentLoc = await sendWhatsAppLocation({
+          to:            from,
+          latitude:      lat,
+          longitude:     lng,
+          name,
+          address,
+          phoneNumberId: whatsappConfig.phone_number_id!,
+          accessToken:   whatsappConfig.access_token!,
+        })
+        await supabase.from("messages").insert({
+          conversation_id:     conversationId,
+          content:             `📍 ${name}${address ? ` — ${address}` : ""}`,
+          direction:           "outbound",
+          sent_by_ai:          true,
+          message_type:        "location",
+          whatsapp_message_id: sentLoc?.messages?.[0]?.id ?? null,
+        })
+        console.log(`📍 Ubicación enviada a ${from}: ${name}`)
+      } catch (err) {
+        console.error("❌ Error enviando ubicación:", err)
+      }
+    } else {
+      console.warn("⚠️ STORE_LATITUDE/STORE_LONGITUDE no configurados — no se envió ubicación")
+    }
+  }
 
   // ── Enviar imagen del producto si el AI lo indicó ──
   // Busca en: 1) Catálogo RentIA  2) Google Sheets
@@ -437,8 +472,8 @@ export async function POST(request: NextRequest) {
       console.error("❌ Error enviando texto:", err)
       await sendFallback()
     }
-  } else if (!productName) {
-    // No hubo imagen ni texto — enviar fallback
+  } else if (!productName && !sendLocation) {
+    // No hubo imagen, ubicación ni texto — enviar fallback
     await sendFallback()
   }
 

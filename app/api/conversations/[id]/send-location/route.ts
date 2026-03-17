@@ -58,6 +58,7 @@ export async function POST(
     content:             `📍 ${name}${address ? ` — ${address}` : ""}`,
     direction:           "outbound",
     sent_by_ai:          false,
+    message_type:        "location",
     whatsapp_message_id: sent?.messages?.[0]?.id ?? null,
   })
 

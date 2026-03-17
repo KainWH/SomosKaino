@@ -1,9 +1,68 @@
-// Contactos — ruta: /contacts
-// Lista de leads/contactos del CRM
+// Contactos y Leads — /contacts
+// Server Component: fetches contacts + last conversation + last message
 
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import Link from "next/link"
+import ContactsTable from "./contacts-table"
+
+export type LeadStatus      = "nuevo" | "calificado" | "mostrando"
+export type LeadTemperature = "hot" | "warm" | "cold"
+
+export interface Lead {
+  id:                 string
+  name:               string
+  phone:              string
+  initials:           string
+  avatarColor:        string
+  source:             "whatsapp" | "manual"
+  status:             LeadStatus
+  temperature:        LeadTemperature
+  score:              number
+  lastMessageAt:      string | null
+  lastMessagePreview: string | null
+  conversationId:     string | null
+  notes:              string | null
+  createdAt:          string
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const AVATAR_COLORS = [
+  "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b",
+  "#ef4444", "#06b6d4", "#ec4899", "#14b8a6",
+]
+
+function pickColor(name: string): string {
+  let hash = 0
+  for (const c of name) hash = (hash + c.charCodeAt(0)) % AVATAR_COLORS.length
+  return AVATAR_COLORS[hash]
+}
+
+function deriveTemperature(lastMsgAt: string | null): LeadTemperature {
+  if (!lastMsgAt) return "cold"
+  const hours = (Date.now() - new Date(lastMsgAt).getTime()) / 36e5
+  if (hours < 24)  return "hot"
+  if (hours < 168) return "warm"  // 7 days
+  return "cold"
+}
+
+function deriveStatus(convStatus: string | null, convCount: number): LeadStatus {
+  if (convCount === 0 || !convStatus) return "nuevo"
+  if (convStatus === "closed")        return "calificado"
+  return "mostrando"
+}
+
+function computeScore(lastMsgAt: string | null, msgCount: number): number {
+  if (!lastMsgAt) return 0
+  const hours  = (Date.now() - new Date(lastMsgAt).getTime()) / 36e5
+  let score = Math.min(msgCount * 8, 60)          // max 60 pts por actividad
+  if (hours < 1)    score += 40
+  else if (hours < 24)  score += 28
+  else if (hours < 168) score += 14
+  return Math.min(Math.round(score), 100)
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ContactsPage() {
   const supabase = createClient()
@@ -12,94 +71,62 @@ export default async function ContactsPage() {
   if (!user) redirect("/login")
 
   const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("owner_id", user.id)
-    .single()
-
+    .from("tenants").select("id").eq("owner_id", user.id).single()
   if (!tenant) redirect("/login")
 
-  const { data: contacts } = await supabase
+  // Fetch contacts with their conversations and latest messages
+  const { data: raw } = await supabase
     .from("contacts")
-    .select("id, name, phone, notes, created_at, last_message_at")
+    .select(`
+      id, name, phone, notes, created_at, last_message_at,
+      conversations (
+        id, status, updated_at,
+        messages ( content, direction, created_at )
+      )
+    `)
     .eq("tenant_id", tenant.id)
+    .is("conversations.deleted_at", null)
     .order("last_message_at", { ascending: false, nullsFirst: false })
+
+  const leads: Lead[] = (raw ?? []).map((c) => {
+    const displayName = c.name ?? c.phone ?? "Desconocido"
+    const initials    = displayName.slice(0, 2).toUpperCase()
+
+    // Get the most recent open conversation (or any)
+    const convs = Array.isArray(c.conversations) ? c.conversations : []
+    const conv  = convs.find((cv: { status: string }) => cv.status === "open") ?? convs[0] ?? null
+
+    // Last message across all conversations
+    const allMessages = convs.flatMap((cv: { messages: { content: string; direction: string; created_at: string }[] }) =>
+      Array.isArray(cv.messages) ? cv.messages : []
+    ).sort((a: { created_at: string }, b: { created_at: string }) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    const lastMsg = allMessages[0] ?? null
+
+    const lastMsgAt = c.last_message_at ?? lastMsg?.created_at ?? null
+
+    return {
+      id:                 c.id,
+      name:               displayName,
+      phone:              c.phone,
+      initials,
+      avatarColor:        pickColor(displayName),
+      source:             "whatsapp" as const,
+      status:             deriveStatus(conv?.status ?? null, convs.length),
+      temperature:        deriveTemperature(lastMsgAt),
+      score:              computeScore(lastMsgAt, allMessages.length),
+      lastMessageAt:      lastMsgAt,
+      lastMessagePreview: lastMsg?.content ?? null,
+      conversationId:     conv?.id ?? null,
+      notes:              c.notes ?? null,
+      createdAt:          c.created_at,
+    }
+  })
 
   return (
     <div className="flex-1 overflow-auto p-6">
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Contactos</h1>
-        <p className="text-gray-500 text-sm">Tus leads de WhatsApp</p>
-      </div>
-
-      {!contacts || contacts.length === 0 ? (
-        <div className="bg-white border rounded-xl p-12 text-center">
-          <p className="text-4xl mb-3">👥</p>
-          <p className="text-gray-900 font-medium">Sin contactos todavía</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Los contactos aparecerán cuando recibas mensajes de WhatsApp
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white border rounded-xl overflow-hidden">
-          {/* Header de tabla */}
-          <div className="grid grid-cols-4 px-5 py-3 bg-gray-50 border-b text-xs font-medium text-gray-500 uppercase tracking-wide">
-            <span>Contacto</span>
-            <span>Teléfono</span>
-            <span>Último mensaje</span>
-            <span>Notas</span>
-          </div>
-
-          {contacts.map((contact, index) => {
-            const displayName = contact.name ?? "Sin nombre"
-            const lastMsg = contact.last_message_at
-              ? new Date(contact.last_message_at).toLocaleDateString("es-MX", {
-                  day: "numeric", month: "short", year: "numeric",
-                })
-              : "—"
-
-            return (
-              <div
-                key={contact.id}
-                className={`grid grid-cols-4 px-5 py-4 items-center hover:bg-gray-50 transition ${
-                  index !== contacts.length - 1 ? "border-b" : ""
-                }`}
-              >
-                {/* Nombre con avatar */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
-                    {displayName[0].toUpperCase()}
-                  </div>
-                  <span className="text-sm font-medium text-gray-900 truncate">
-                    {displayName}
-                  </span>
-                </div>
-
-                {/* Teléfono */}
-                <span className="text-sm text-gray-500">{contact.phone}</span>
-
-                {/* Último mensaje */}
-                <span className="text-sm text-gray-400">{lastMsg}</span>
-
-                {/* Notas + link a conversación */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-gray-400 truncate">
-                    {contact.notes ?? "—"}
-                  </span>
-                  <Link
-                    href={`/inbox`}
-                    className="text-xs text-green-600 hover:underline flex-shrink-0"
-                  >
-                    Ver chat →
-                  </Link>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
+      <ContactsTable leads={leads} tenantId={tenant.id} />
     </div>
   )
 }

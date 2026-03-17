@@ -43,15 +43,17 @@ export async function describeImage(buffer: Buffer, mimeType: string): Promise<s
 const JSON_FORMAT_INSTRUCTION = `
 
 FORMATO DE RESPUESTA OBLIGATORIO — responde SIEMPRE con este JSON en una sola línea, sin markdown ni texto fuera:
-{"reply":"mensaje al cliente","product_name":null}
+{"reply":"mensaje al cliente","product_name":null,"send_location":false}
 
 Reglas:
 - reply: tu mensaje al cliente.
-- product_name: si el cliente pide ver la foto de un producto o estás describiendo uno específico, escribe el nombre exacto del modelo como aparece en los datos (ej: "Samsung Galaxy A07"). Pon null si no aplica. NO pongas URLs ni rutas de archivo.`
+- product_name: si el cliente pide ver la foto de un producto o estás describiendo uno específico, escribe el nombre exacto del modelo como aparece en los datos (ej: "Samsung Galaxy A07"). Pon null si no aplica. NO pongas URLs ni rutas de archivo.
+- send_location: pon true ÚNICAMENTE si el cliente pregunta por la dirección, ubicación o cómo llegar a la tienda. En ese caso, se enviará automáticamente la ubicación en WhatsApp. Pon false en todos los demás casos.`
 
 export type AIReply = {
-  reply:       string
-  productName: string | null
+  reply:        string
+  productName:  string | null
+  sendLocation: boolean
 }
 
 export async function generateReply({
@@ -82,7 +84,7 @@ export async function generateReply({
 
   if (!raw) {
     console.warn("⚠️ Gemini devolvió respuesta vacía")
-    return { reply: "", productName: null }
+    return { reply: "", productName: null, sendLocation: false }
   }
 
   // Gemini a veces alucina un "tool_code" de Drive — extraemos el nombre del producto del filename
@@ -95,21 +97,22 @@ export async function generateReply({
         .replace(/\s+/g, " ")
         .trim()
       console.warn(`⚠️ Gemini usó tool_code — extrayendo producto: "${productName}"`)
-      return { reply: "", productName }
+      return { reply: "", productName, sendLocation: false }
     }
     console.warn("⚠️ Gemini usó tool_code pero no se pudo extraer el producto")
-    return { reply: "", productName: null }
+    return { reply: "", productName: null, sendLocation: false }
   }
 
   try {
     const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "")
     const parsed  = JSON.parse(cleaned)
     return {
-      reply:       (parsed.reply ?? "").trim(),
-      productName: parsed.product_name && parsed.product_name !== "null" ? parsed.product_name : null,
+      reply:        (parsed.reply ?? "").trim(),
+      productName:  parsed.product_name && parsed.product_name !== "null" ? parsed.product_name : null,
+      sendLocation: parsed.send_location === true,
     }
   } catch {
     console.warn("⚠️ Gemini no devolvió JSON válido, usando texto plano")
-    return { reply: raw, productName: null }
+    return { reply: raw, productName: null, sendLocation: false }
   }
 }

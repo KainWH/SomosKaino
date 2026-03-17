@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { MapPin } from "lucide-react"
 
 type Message = {
   id:            string
@@ -108,7 +109,6 @@ export default function MessagesView({ messages: initial, avatarColor, contactIn
                       <audio controls preload="none" className="h-8 w-48 max-w-full" src={`/api/media/${msg.media_id}`} />
                     </div>
                   ) : msg.message_type === "image" ? (() => {
-                    // Outbound con URL directa (producto) o inbound via proxy
                     const src = msg.content?.startsWith("http")
                       ? msg.content
                       : `/api/media/${msg.media_id}`
@@ -119,6 +119,34 @@ export default function MessagesView({ messages: initial, avatarColor, contactIn
                         className="rounded-xl max-w-[240px] max-h-[320px] object-cover cursor-pointer"
                         onClick={() => window.open(src, "_blank")}
                       />
+                    )
+                  })() : msg.message_type === "location" ? (() => {
+                    // Extraer nombre y dirección del content "📍 Nombre — Dirección"
+                    const raw     = msg.content.replace(/^📍\s*/, "")
+                    const sepIdx  = raw.indexOf(" — ")
+                    const locName = sepIdx !== -1 ? raw.slice(0, sepIdx) : raw
+                    const locAddr = sepIdx !== -1 ? raw.slice(sepIdx + 3) : ""
+                    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locName + (locAddr ? `, ${locAddr}` : ""))}`
+                    return (
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 min-w-[200px] group/loc"
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          isInbound ? "bg-slate-700/60" : "bg-green-500/20"
+                        }`}>
+                          <MapPin size={18} className={isInbound ? "text-slate-400" : "text-white"} />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-semibold leading-tight truncate">{locName}</span>
+                          {locAddr && <span className="text-[11px] opacity-70 truncate mt-0.5">{locAddr}</span>}
+                          <span className={`text-[10px] mt-1 underline underline-offset-2 ${
+                            isInbound ? "text-blue-400" : "text-green-200"
+                          }`}>Ver en Maps</span>
+                        </div>
+                      </a>
                     )
                   })() : (
                     msg.content
