@@ -421,7 +421,7 @@ export async function POST(request: NextRequest) {
     const alertMsg    = `🛒 *Pedido confirmado*\n\nCliente: *${clientName}*\nTeléfono: ${from}${orderDetail}\n\n👉 Coordina el pago y la entrega.`
 
     const ALERT_NUMBERS = ["18094173098", "18292856400"]
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       ALERT_NUMBERS.map((num) =>
         sendWhatsAppMessage({
           to:            num,
@@ -431,7 +431,13 @@ export async function POST(request: NextRequest) {
         })
       )
     )
-    console.log(`📲 Notificación de handover enviada a: ${ALERT_NUMBERS.join(", ")}`)
+    results.forEach((result, i) => {
+      if (result.status === "fulfilled") {
+        console.log(`📲 Alerta enviada a ${ALERT_NUMBERS[i]}`)
+      } else {
+        console.error(`❌ Error enviando alerta a ${ALERT_NUMBERS[i]}:`, result.reason?.message ?? result.reason)
+      }
+    })
   }
 
   // ── Enviar ubicación de la tienda si el AI lo indicó ──
