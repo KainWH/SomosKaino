@@ -63,10 +63,10 @@ export default function ProductSearch({ conversationId }: { conversationId: stri
     if (product.price != null) lines.push(`💰 Precio: ${formatPrice(product.price, product.currency)}`)
     const message = lines.join("\n")
 
-    const res = await fetch(`/api/conversations/${conversationId}/send`, {
+    const res = await fetch(`/api/conversations/${conversationId}/send-product`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ message }),
+      body:    JSON.stringify({ imageUrl: product.image_url ?? null, message }),
     })
 
     if (res.ok) {
