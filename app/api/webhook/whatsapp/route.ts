@@ -390,7 +390,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ok" }, { status: 200 })
   }
 
-  const { reply, productName, sendLocation } = aiReply
+  const { reply, productName, sendLocation, handover, leadNotes } = aiReply
+
+  // ── Guardar notas del lead si la IA detectó información relevante ──
+  if (leadNotes) {
+    const timestamp = new Date().toLocaleDateString("es-DO", { day: "numeric", month: "short", year: "numeric" })
+    const newNote   = `[${timestamp}] ${leadNotes}`
+
+    const { data: currentContact } = await supabase
+      .from("contacts").select("notes").eq("id", contact.id).single()
+
+    const updatedNotes = currentContact?.notes
+      ? `${currentContact.notes}\n${newNote}`
+      : newNote
+
+    await supabase.from("contacts").update({ notes: updatedNotes }).eq("id", contact.id)
+    console.log(`📝 Nota guardada para ${from}: "${leadNotes}"`)
+  }
+
+  // ── Handover: pausar IA y transferir a humano ──
+  if (handover) {
+    await supabase.from("conversations").update({ ai_paused: true }).eq("id", conversationId)
+    console.log(`🤝 Handover activado para conversación ${conversationId} — IA pausada`)
+  }
 
   // ── Enviar ubicación de la tienda si el AI lo indicó ──
   if (sendLocation) {
@@ -472,8 +494,8 @@ export async function POST(request: NextRequest) {
       console.error("❌ Error enviando texto:", err)
       await sendFallback()
     }
-  } else if (!productName && !sendLocation) {
-    // No hubo imagen, ubicación ni texto — enviar fallback
+  } else if (!productName && !sendLocation && !handover) {
+    // No hubo imagen, ubicación, handover ni texto — enviar fallback
     await sendFallback()
   }
 
