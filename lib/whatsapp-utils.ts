@@ -30,7 +30,7 @@ export function validateWebhookSignature(
 // Solo se pueden enviar mensajes libres dentro de las 24h del último mensaje
 // del usuario. Fuera de esa ventana, solo templates aprobados.
 export function isWithin24hWindow(lastUserMessageAt: string | null | undefined): boolean {
-  if (!lastUserMessageAt) return false
+  if (!lastUserMessageAt) return true // sin datos → permitir, Meta dará error si aplica
   const windowMs = 24 * 60 * 60 * 1000
   return Date.now() - new Date(lastUserMessageAt).getTime() < windowMs
 }
