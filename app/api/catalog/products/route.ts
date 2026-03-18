@@ -16,6 +16,7 @@ export async function GET() {
     .from("catalog_products")
     .select("*")
     .eq("tenant_id", tenant.id)
+    .eq("enabled", true)
     .order("created_at", { ascending: false })
 
   return NextResponse.json(data ?? [])
