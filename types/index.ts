@@ -17,7 +17,7 @@ export type WhatsappConfig = {
   id: string
   tenant_id: string
   phone_number_id: string | null   // ID del número en Meta
-  access_token: string | null      // Token de Meta (secreto)
+  access_token?: string | null     // Token de Meta (secreto) — nunca enviado al cliente
   phone_display: string | null     // "+52 55 1234 5678" para mostrar
   is_configured: boolean
   created_at: string
