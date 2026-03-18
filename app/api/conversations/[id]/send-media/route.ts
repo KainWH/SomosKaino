@@ -55,7 +55,19 @@ export async function POST(
 
   const buffer   = Buffer.from(await file.arrayBuffer())
   const mimeType = file.type || (type === "image" ? "image/jpeg" : "audio/ogg")
-  const filename = type === "image" ? "image.jpg" : "voice.ogg"
+  const ext      = type === "image"
+    ? (mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg")
+    : (mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : "ogg")
+  const filename = `${type}-${Date.now()}.${ext}`
+
+  // Subir a Supabase Storage para poder mostrarlo en el chat
+  const { data: storageData } = await supabase.storage
+    .from("chat-media")
+    .upload(`${tenant.id}/${filename}`, buffer, { contentType: mimeType, upsert: false })
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("chat-media")
+    .getPublicUrl(storageData?.path ?? `${tenant.id}/${filename}`)
 
   // Subir el archivo a WhatsApp
   const mediaId = await uploadMedia({
@@ -77,12 +89,10 @@ export async function POST(
     accessToken:   whatsappConfig.access_token,
   })
 
-  const content = type === "image" ? "🖼️ Imagen" : "🎤 Nota de voz"
-
-  // Guardar en la BD
+  // Guardar en la BD con la URL pública de Storage como content
   await supabase.from("messages").insert({
     conversation_id:     params.id,
-    content,
+    content:             publicUrl,
     direction:           "outbound",
     sent_by_ai:          false,
     whatsapp_message_id: sent?.messages?.[0]?.id ?? null,

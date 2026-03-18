@@ -134,10 +134,20 @@ export default function MessagesView({ messages: initial, avatarColor, contactIn
                     ? "bg-slate-800/80 border border-slate-700/50 text-slate-200 rounded-2xl rounded-bl-sm"
                     : "bg-green-600 text-white rounded-2xl rounded-br-sm"
                 }`}>
-                  {msg.message_type === "audio" && msg.media_id ? (
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-xs opacity-70">🎤 Nota de voz</span>
-                      <audio controls preload="none" className="h-8 w-48 max-w-full" src={`/api/media/${msg.media_id}`} />
+                  {msg.message_type === "audio" ? (
+                    <div className="flex flex-col gap-1.5 py-0.5">
+                      <span className="text-xs opacity-60">🎤 Nota de voz</span>
+                      <audio
+                        controls
+                        preload="none"
+                        className="w-full max-w-[260px]"
+                        style={{ minHeight: "44px" }}
+                        src={
+                          msg.content?.startsWith("http")
+                            ? msg.content
+                            : msg.media_id ? `/api/media/${msg.media_id}` : undefined
+                        }
+                      />
                     </div>
                   ) : msg.message_type === "image" ? (() => {
                     const src = msg.content?.startsWith("http")
