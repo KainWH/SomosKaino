@@ -100,7 +100,7 @@ async function processWebhookMessage(body: any) {
   const phoneNumberId    = value?.metadata?.phone_number_id
   const contactName: string | null = value?.contacts?.[0]?.profile?.name ?? null
   const referral         = message.referral ?? null
-  if (referral) console.log(`📣 Referral recibido:`, JSON.stringify(referral))
+  if (referral) console.log(`📣 Referral: headline="${referral.headline}", platform source detected`)
 
   const supabase = createServiceClient()
 
@@ -428,7 +428,6 @@ async function processWebhookMessage(body: any) {
     ?? contactNotes?.match(/\[Origen: Anuncio "([^"]+)"/)?.[1]
     ?? null
 
-  console.log(`📣 adHeadline="${adHeadline}"`)
 
 
   const referralContext = adHeadline
