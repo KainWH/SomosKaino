@@ -27,7 +27,7 @@ export default function Header({ name }: { name: string }) {
   }, [])
 
   return (
-    <header className="h-14 bg-slate-900/70 backdrop-blur-xl border-b border-slate-800/60 flex items-center px-6 gap-4 shrink-0">
+    <header className="h-14 bg-slate-900/70 backdrop-blur-xl border-b border-slate-800/60 flex items-center pl-14 pr-6 md:px-6 gap-4 shrink-0">
 
       {/* Saludo */}
       <div className="flex-1 min-w-0 hidden md:block">
