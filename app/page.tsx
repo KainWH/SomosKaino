@@ -14,31 +14,31 @@ import {
 // ── NAVBAR ─────────────────────────────────────────────────────────────────
 function Navbar() {
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <header className="fixed top-0 inset-x-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md shadow-green-200">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-md shadow-green-900/30">
             <Zap size={15} className="text-white" strokeWidth={2.5} />
           </div>
-          <span className="text-[15px] font-bold text-gray-900 tracking-tight">SomosKaino</span>
+          <span className="text-[15px] font-bold text-white tracking-tight">SomosKaino</span>
         </a>
 
         {/* Nav links */}
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#funcionalidades" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Funcionalidades</a>
-          <a href="#proceso"         className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Proceso</a>
-          <a href="#contacto"        className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Contacto</a>
+          <a href="#funcionalidades" className="text-sm text-gray-400 hover:text-white transition-colors">Funcionalidades</a>
+          <a href="#proceso"         className="text-sm text-gray-400 hover:text-white transition-colors">Proceso</a>
+          <a href="#contacto"        className="text-sm text-gray-400 hover:text-white transition-colors">Contacto</a>
         </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <a href="/login"    className="text-sm text-gray-600 hover:text-gray-900 transition-colors px-3 py-1.5">
+          <a href="/login"    className="text-sm text-gray-400 hover:text-white transition-colors px-3 py-1.5">
             Iniciar sesión
           </a>
           <a
             href="/register"
-            className="text-sm bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600 transition-colors font-medium shadow-sm shadow-green-200"
+            className="text-sm bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600 transition-colors font-medium shadow-sm shadow-green-900/30"
           >
             Empezar ahora
           </a>
@@ -55,19 +55,19 @@ function Hero() {
       <div className="max-w-4xl mx-auto flex flex-col items-center text-center gap-8">
 
         {/* Badge */}
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full">
-          <Zap size={11} className="text-green-500" />
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">
+          <Zap size={11} className="text-green-400" />
           Inteligencia Artificial para WhatsApp
         </span>
 
         {/* Heading */}
-        <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-[1.1] tracking-tight max-w-3xl">
+        <h1 className="text-5xl md:text-6xl font-bold text-white leading-[1.1] tracking-tight max-w-3xl">
           Vende más con{" "}
-          <span className="text-green-500">cada conversación</span>
+          <span className="text-green-400">cada conversación</span>
         </h1>
 
         {/* Subheading */}
-        <p className="text-lg md:text-xl text-gray-500 max-w-xl leading-relaxed">
+        <p className="text-lg md:text-xl text-gray-400 max-w-xl leading-relaxed">
           SomosKaino convierte tus chats de WhatsApp en ventas cerradas.
           Tu agente de IA responde, califica y agenda — sin que tengas que intervenir.
         </p>
@@ -76,20 +76,20 @@ function Hero() {
         <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
           <a
             href="/register"
-            className="inline-flex items-center gap-2 bg-green-500 text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-green-600 transition-colors shadow-md shadow-green-200"
+            className="inline-flex items-center gap-2 bg-green-500 text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-green-600 transition-colors shadow-md shadow-green-900/30"
           >
             Empezar ahora <ArrowRight size={15} />
           </a>
           <a
             href="#proceso"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 border border-gray-200 px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-300 border border-white/10 px-6 py-3 rounded-xl hover:bg-white/5 transition-colors"
           >
             Ver demostración
           </a>
         </div>
 
         {/* Social proof */}
-        <p className="text-xs text-gray-400 pt-2">
+        <p className="text-xs text-gray-500 pt-2">
           Sin tarjeta de crédito · Configuración en minutos
         </p>
       </div>
@@ -133,16 +133,16 @@ const features = [
 
 function Features() {
   return (
-    <section id="funcionalidades" className="py-24 px-6 bg-gray-50">
+    <section id="funcionalidades" className="py-24 px-6 bg-slate-900">
       <div className="max-w-6xl mx-auto flex flex-col gap-14">
 
         {/* Header */}
         <div className="text-center max-w-xl mx-auto flex flex-col gap-3">
-          <p className="text-xs font-semibold text-green-600 uppercase tracking-widest">Funcionalidades</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+          <p className="text-xs font-semibold text-green-400 uppercase tracking-widest">Funcionalidades</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
             Todo lo que necesitas para cerrar más ventas
           </h2>
-          <p className="text-gray-500 text-base">
+          <p className="text-gray-400 text-base">
             Un CRM potenciado por IA, diseñado específicamente para negocios que venden por WhatsApp.
           </p>
         </div>
@@ -152,14 +152,14 @@ function Features() {
           {features.map(({ icon: Icon, title, desc }) => (
             <div
               key={title}
-              className="bg-white border border-gray-100 rounded-2xl p-6 flex flex-col gap-4 hover:shadow-sm transition-shadow"
+              className="bg-slate-800/50 border border-white/5 rounded-2xl p-6 flex flex-col gap-4 hover:bg-slate-800 transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-                <Icon size={18} className="text-green-500" strokeWidth={1.75} />
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <Icon size={18} className="text-green-400" strokeWidth={1.75} />
               </div>
               <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+                <h3 className="text-sm font-semibold text-white">{title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
@@ -195,16 +195,16 @@ const steps = [
 
 function Process() {
   return (
-    <section id="proceso" className="py-24 px-6 bg-white">
+    <section id="proceso" className="py-24 px-6 bg-slate-950">
       <div className="max-w-6xl mx-auto flex flex-col gap-14">
 
         {/* Header */}
         <div className="text-center max-w-xl mx-auto flex flex-col gap-3">
-          <p className="text-xs font-semibold text-green-600 uppercase tracking-widest">Proceso</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+          <p className="text-xs font-semibold text-green-400 uppercase tracking-widest">Proceso</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
             De mensaje a venta, en automático
           </h2>
-          <p className="text-gray-500 text-base">
+          <p className="text-gray-400 text-base">
             Así funciona SomosKaino en cada conversación.
           </p>
         </div>
@@ -215,18 +215,18 @@ function Process() {
             <div key={step.number} className="flex flex-col md:flex-row">
               <div className="flex flex-col gap-4 flex-1 px-6 py-4 relative">
                 {/* Number */}
-                <span className="text-4xl font-black text-green-100 leading-none select-none">
+                <span className="text-4xl font-black text-green-500/20 leading-none select-none">
                   {step.number}
                 </span>
                 <div className="flex flex-col gap-1.5">
-                  <h3 className="text-sm font-bold text-gray-900">{step.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
+                  <h3 className="text-sm font-bold text-white">{step.title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">{step.desc}</p>
                 </div>
               </div>
               {/* Connector — solo entre steps */}
               {i < steps.length - 1 && (
                 <div className="hidden md:flex items-center px-1 pt-10">
-                  <ArrowRight size={16} className="text-gray-200 shrink-0" />
+                  <ArrowRight size={16} className="text-white/10 shrink-0" />
                 </div>
               )}
             </div>
@@ -340,7 +340,7 @@ function Footer() {
 // ── PAGE ───────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-slate-950">
       <Navbar />
       <Hero />
       <Features />
