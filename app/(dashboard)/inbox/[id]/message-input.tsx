@@ -2,17 +2,20 @@
 
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Send, Image, Mic, MicOff } from "lucide-react"
+import { Send, ImagePlus, Mic, MicOff, Camera } from "lucide-react"
 
 export default function MessageInput({ conversationId }: { conversationId: string }) {
-  const [text, setText]           = useState("")
-  const [sending, setSending]     = useState(false)
-  const [recording, setRecording] = useState(false)
-  const router        = useRouter()
-  const textareaRef   = useRef<HTMLTextAreaElement>(null)
-  const fileInputRef  = useRef<HTMLInputElement>(null)
-  const mediaRecorder = useRef<MediaRecorder | null>(null)
-  const audioChunks   = useRef<Blob[]>([])
+  const [text, setText]               = useState("")
+  const [sending, setSending]         = useState(false)
+  const [recording, setRecording]     = useState(false)
+  const [recordingSecs, setRecordingSecs] = useState(0)
+  const router          = useRouter()
+  const textareaRef     = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef    = useRef<HTMLInputElement>(null)
+  const cameraInputRef  = useRef<HTMLInputElement>(null)
+  const mediaRecorder   = useRef<MediaRecorder | null>(null)
+  const audioChunks     = useRef<Blob[]>([])
+  const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null)
 
   async function handleSend() {
     if (!text.trim() || sending) return
@@ -31,7 +34,7 @@ export default function MessageInput({ conversationId }: { conversationId: strin
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
-  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setSending(true)
@@ -45,73 +48,127 @@ export default function MessageInput({ conversationId }: { conversationId: strin
     setSending(false)
   }
 
-  async function startRecording() {
+  function getBestMimeType() {
+    const types = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+      "audio/ogg;codecs=opus",
+      "audio/ogg",
+    ]
+    return types.find((t) => MediaRecorder.isTypeSupported(t)) ?? ""
+  }
+
+  async function toggleRecording() {
+    if (recording) {
+      // Detener
+      mediaRecorder.current?.stop()
+      if (timerRef.current) clearInterval(timerRef.current)
+      setRecording(false)
+      setRecordingSecs(0)
+      return
+    }
+
     try {
       const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/ogg"
-      const recorder = new MediaRecorder(stream, { mimeType })
+      const mimeType = getBestMimeType()
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       mediaRecorder.current = recorder
       audioChunks.current   = []
+
       recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.current.push(e.data) }
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop())
         setSending(true)
-        const blob = new Blob(audioChunks.current, { type: mimeType })
+        const blob     = new Blob(audioChunks.current, { type: mimeType || "audio/ogg" })
+        const ext      = mimeType.includes("mp4") ? "m4a" : "ogg"
         const formData = new FormData()
-        formData.append("file", blob, "voice.ogg")
+        formData.append("file", blob, `voice.${ext}`)
         formData.append("type", "audio")
         const res = await fetch(`/api/conversations/${conversationId}/send-media`, { method: "POST", body: formData })
         if (res.ok) router.refresh()
         else alert("Error al enviar la nota de voz")
         setSending(false)
       }
-      recorder.start()
+
+      recorder.start(250)
       setRecording(true)
-    } catch { alert("No se pudo acceder al micrófono") }
+      setRecordingSecs(0)
+      timerRef.current = setInterval(() => setRecordingSecs((s) => s + 1), 1000)
+    } catch {
+      alert("No se pudo acceder al micrófono")
+    }
   }
 
-  function stopRecording() { mediaRecorder.current?.stop(); setRecording(false) }
+  function formatSecs(s: number) {
+    return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+  }
 
   return (
-    <div className="flex items-end gap-2.5 px-4 py-3.5 bg-slate-900/80 backdrop-blur-md border-t border-slate-800/60 shrink-0">
+    <div className="flex items-end gap-2 px-3 py-3 bg-slate-900/80 backdrop-blur-md border-t border-slate-800/60 shrink-0">
 
-      {/* Imagen */}
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        disabled={sending || recording}
-        className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition-all disabled:opacity-40 shrink-0"
-      >
-        <Image size={18} />
-      </button>
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+      {/* Inputs de archivo ocultos */}
+      <input ref={fileInputRef}   type="file" accept="image/*"          className="hidden" onChange={handleFileChange} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
 
-      {/* Textarea */}
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Escribe un mensaje..."
-        rows={1}
-        disabled={recording || sending}
-        className="flex-1 resize-none bg-slate-800/60 border border-slate-700/40 rounded-2xl px-4 py-2.5
-          text-sm text-slate-200 placeholder-slate-600
-          focus:outline-none focus:ring-1 focus:ring-green-500/40 focus:border-green-500/40
-          max-h-32 leading-relaxed disabled:opacity-50 transition-all"
-        style={{ minHeight: "42px" }}
-      />
+      {/* Botones de adjuntos — solo cuando no está grabando */}
+      {!recording && (
+        <>
+          {/* Galería */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={sending}
+            title="Enviar imagen de galería"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition-all disabled:opacity-40 shrink-0"
+          >
+            <ImagePlus size={18} />
+          </button>
 
-      {/* Micrófono */}
+          {/* Cámara (mobile) */}
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={sending}
+            title="Tomar foto"
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition-all disabled:opacity-40 shrink-0 md:hidden"
+          >
+            <Camera size={18} />
+          </button>
+        </>
+      )}
+
+      {/* Textarea / indicador de grabación */}
+      {recording ? (
+        <div className="flex-1 flex items-center gap-3 bg-slate-800/60 border border-red-500/30 rounded-2xl px-4 py-2.5">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+          <span className="text-sm text-red-400 font-medium">Grabando…</span>
+          <span className="text-sm text-slate-400 tabular-nums ml-auto">{formatSecs(recordingSecs)}</span>
+        </div>
+      ) : (
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Escribe un mensaje..."
+          rows={1}
+          disabled={sending}
+          className="flex-1 resize-none bg-slate-800/60 border border-slate-700/40 rounded-2xl px-4 py-2.5
+            text-sm text-slate-200 placeholder-slate-600
+            focus:outline-none focus:ring-1 focus:ring-green-500/40 focus:border-green-500/40
+            max-h-32 leading-relaxed disabled:opacity-50 transition-all"
+          style={{ minHeight: "42px" }}
+        />
+      )}
+
+      {/* Micrófono (tap para iniciar/detener) — solo cuando no hay texto */}
       {!text.trim() && (
         <button
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onTouchStart={startRecording}
-          onTouchEnd={stopRecording}
+          onClick={toggleRecording}
           disabled={sending}
-          className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all shrink-0 disabled:opacity-40 ${
+          title={recording ? "Detener grabación" : "Grabar nota de voz"}
+          className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shrink-0 disabled:opacity-40 ${
             recording
-              ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
+              ? "bg-red-500 text-white shadow-lg shadow-red-500/30"
               : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/60"
           }`}
         >
@@ -119,7 +176,7 @@ export default function MessageInput({ conversationId }: { conversationId: strin
         </button>
       )}
 
-      {/* Enviar */}
+      {/* Enviar texto */}
       {text.trim() && (
         <button
           onClick={handleSend}
