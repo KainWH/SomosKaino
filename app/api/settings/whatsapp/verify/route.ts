@@ -32,7 +32,7 @@ export async function GET() {
 
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v19.0/${config.phone_number_id}?fields=display_phone_number,verified_name,quality_rating`,
+      `https://graph.facebook.com/v19.0/${config.phone_number_id}`,
       {
         headers: { Authorization: `Bearer ${config.access_token}` },
         cache: "no-store",
