@@ -32,23 +32,23 @@ export default function ProductList({ products }: { products: Product[] }) {
   const list = products.slice(0, 10)
 
   return (
-    <div className="h-full flex flex-col bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-800/60 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between">
+    <div className="h-full flex flex-col rounded-2xl border border-[#1f2b49] overflow-hidden" style={{ background: "#0a1628" }}>
+      <div className="px-5 py-4 border-b border-[#1f2b49] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-slate-200">Productos</h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">{products.length} en catálogo</p>
+          <h2 className="text-sm font-semibold text-[#dee5ff]">Productos</h2>
+          <p className="text-[11px] text-[#a3aac4] mt-0.5">{products.length} en catálogo</p>
         </div>
-        <Link href="/catalog" className="text-[11px] text-blue-400 font-medium flex items-center gap-0.5 hover:text-blue-300 transition-colors">
+        <Link href="/catalog" className="text-[11px] text-[#40C4FF] font-medium flex items-center gap-0.5 hover:text-[#40C4FF]/80 transition-colors">
           Ver todos <ChevronRight size={11} />
         </Link>
       </div>
 
-      <div className="divide-y divide-slate-800/40 flex-1 overflow-y-auto">
+      <div className="divide-y divide-[#1f2b49]/60 flex-1 overflow-y-auto">
         {list.length === 0 ? (
-          <div className="py-12 flex flex-col items-center gap-2 text-slate-600">
+          <div className="py-12 flex flex-col items-center gap-2 text-[#3a4460]">
             <Package size={26} strokeWidth={1.5} />
             <p className="text-sm">Sin productos aún</p>
-            <Link href="/catalog" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+            <Link href="/catalog" className="text-xs text-[#40C4FF] hover:text-[#40C4FF]/80 transition-colors">
               Agregar producto →
             </Link>
           </div>
@@ -60,26 +60,26 @@ export default function ProductList({ products }: { products: Product[] }) {
             return (
               <div
                 key={p.id}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-slate-800/30 transition-colors duration-150"
+                className="flex items-center gap-3 px-5 py-3 hover:bg-[#0d1a35] transition-colors duration-150"
               >
                 {/* Imagen / icono */}
-                <div className="w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700/40 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl bg-[#0d1a35] border border-[#1f2b49] flex items-center justify-center shrink-0 overflow-hidden">
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Icon size={16} strokeWidth={1.5} className="text-slate-500" />
+                    <Icon size={16} strokeWidth={1.5} className="text-[#a3aac4]" />
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-slate-300 truncate">{p.name}</p>
+                  <p className="text-[13px] font-medium text-[#dee5ff] truncate">{p.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {p.stock != null && (
-                      <span className="text-[10px] text-slate-600">Stock: {p.stock}</span>
+                      <span className="text-[10px] text-[#3a4460]">Stock: {p.stock}</span>
                     )}
                     {lowStock && (
-                      <span className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
+                      <span className="flex items-center gap-0.5 text-[10px] font-semibold text-[#FF6D00] bg-[#FF6D00]/10 border border-[#FF6D00]/20 px-1.5 py-0.5 rounded-full">
                         <AlertTriangle size={8} />
                         Stock bajo
                       </span>
@@ -89,7 +89,7 @@ export default function ProductList({ products }: { products: Product[] }) {
 
                 {/* Precio */}
                 {p.price != null && (
-                  <span className="text-[13px] font-semibold text-slate-300 shrink-0">
+                  <span className="text-[13px] font-semibold text-[#dee5ff] shrink-0">
                     {p.currency === "DOP" || !p.currency
                       ? formatDOP(p.price)
                       : `${p.currency} ${p.price.toLocaleString()}`}

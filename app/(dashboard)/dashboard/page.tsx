@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { MessageCircle, Users, Bot, ShoppingCart } from "lucide-react"
 import MetricCard       from "@/components/MetricCard"
 import ConversationList from "@/components/ConversationList"
-import ProductList      from "@/components/ProductList"
+import RecentMovements  from "@/components/RecentMovements"
 import QuickActions     from "@/components/QuickActions"
 
 export default async function DashboardPage() {
@@ -30,8 +30,6 @@ export default async function DashboardPage() {
     { data: waConfig },
     { data: aiConfig },
     { data: conversations },
-    { data: products },
-    { count: totalProducts },
     { count: pendingOrders },
   ] = await Promise.all([
     supabase.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", today.toISOString()),
@@ -50,10 +48,6 @@ export default async function DashboardPage() {
     supabase.from("conversations")
       .select("id, status, ai_paused, updated_at, contacts(id, name, phone), messages(content, direction, sent_by_ai, created_at)")
       .eq("tenant_id", tenant.id).order("updated_at", { ascending: false }).limit(8),
-    supabase.from("catalog_products")
-      .select("id, name, price, currency, enabled, image_url")
-      .eq("tenant_id", tenant.id).eq("enabled", true).order("name").limit(10),
-    supabase.from("catalog_products").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("enabled", true),
     supabase.from("orders").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("status", "pending"),
   ])
 
@@ -75,21 +69,21 @@ export default async function DashboardPage() {
   const ordersSparkline = [0, pendingOrders ?? 0]
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Alerta setup ── */}
       {!isSetupDone && (
-        <div className="mx-6 mt-6 flex items-center gap-4 bg-amber-900/20 border border-amber-800 rounded-2xl p-4 shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-amber-900/50 flex items-center justify-center shrink-0">
+        <div className="mx-6 mt-6 flex items-center gap-4 bg-[#FF6D00]/10 border border-[#FF6D00]/30 rounded-2xl p-4 shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-[#FF6D00]/15 flex items-center justify-center shrink-0">
             <span>⚠️</span>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-300">Tu agente no está activo</p>
-            <p className="text-xs text-amber-400 mt-0.5">
+            <p className="text-sm font-semibold text-[#FF6D00]">Tu agente no está activo</p>
+            <p className="text-xs text-[#FF6D00]/70 mt-0.5">
               {!waConfig?.is_configured ? "Conecta WhatsApp Business para empezar a recibir mensajes." : "Activa el agente de IA en Configuración."}
             </p>
           </div>
-          <a href="/settings" className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl font-medium transition-colors shrink-0">
+          <a href="/settings" className="text-xs bg-[#FF6D00] hover:bg-[#e86200] text-white px-4 py-2 rounded-xl font-medium transition-colors shrink-0">
             Configurar →
           </a>
         </div>
@@ -114,7 +108,7 @@ export default async function DashboardPage() {
           trend={{ value: leadsTrend, label: "vs semana anterior" }}
           sparkline={leadsSparkline}
           icon={Users}
-          color="emerald"
+          color="teal"
           href="/contacts"
         />
         <MetricCard
@@ -132,7 +126,7 @@ export default async function DashboardPage() {
           sublabel="Sin gestionar"
           sparkline={ordersSparkline}
           icon={ShoppingCart}
-          color="amber"
+          color="orange"
           href="/orders"
         />
       </div>
@@ -149,7 +143,7 @@ export default async function DashboardPage() {
         <div className="lg:col-span-2 min-h-0 grid gap-5" style={{ gridTemplateRows: "auto 1fr" }}>
           <QuickActions />
           <div className="min-h-0 overflow-hidden">
-            <ProductList products={(products ?? []) as any} />
+            <RecentMovements />
           </div>
         </div>
 

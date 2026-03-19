@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import {
-  Menu, X, Zap,
+  Menu, X,
   LayoutDashboard, MessageCircle, Users, ShoppingCart,
   Package, Tag, BarChart2, Brain, Settings, LogOut, LucideIcon,
 } from "lucide-react"
+import KainoLogo from "@/components/KainoLogo"
 
 type NavItem  = { href: string; label: string; icon: LucideIcon; badge?: string }
 type Section  = { title: string; items: NavItem[] }
@@ -28,7 +29,6 @@ const sections: Section[] = [
     items: [
       { href: "/orders",    label: "Pedidos",    icon: ShoppingCart },
       { href: "/inventory", label: "Inventario", icon: Package },
-      { href: "/catalog",   label: "Productos",  icon: Tag },
       { href: "/reports",   label: "Reportes",   icon: BarChart2 },
     ],
   },
@@ -62,7 +62,7 @@ export default function MobileNav({ tenantName, email }: { tenantName?: string; 
       {!inConversation && (
         <button
           onClick={() => setOpen(true)}
-          className="md:hidden fixed top-0 left-0 z-50 h-14 w-14 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors"
+          className="md:hidden fixed top-0 left-0 z-50 h-14 w-14 flex items-center justify-center text-[#a3aac4] hover:text-[#dee5ff] transition-colors"
           aria-label="Abrir menú"
         >
           <Menu size={20} strokeWidth={1.75} />
@@ -72,28 +72,25 @@ export default function MobileNav({ tenantName, email }: { tenantName?: string; 
       {/* Overlay */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm"
+          className="md:hidden fixed inset-0 z-50 bg-[#060e20]/80 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         />
       )}
 
       {/* Drawer */}
-      <aside className={`
-        md:hidden fixed top-0 left-0 z-50 h-full w-72 bg-slate-900 border-r border-slate-800/60
-        flex flex-col transition-transform duration-300 ease-in-out
-        ${open ? "translate-x-0" : "-translate-x-full"}
-      `}>
+      <aside
+        className={`md:hidden fixed top-0 left-0 z-50 h-full w-72 border-r border-[#1f2b49] flex flex-col transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ background: "#0a1628" }}
+      >
         {/* Header del drawer */}
-        <div className="px-4 h-14 flex items-center justify-between border-b border-slate-800/60 shrink-0">
+        <div className="px-4 h-14 flex items-center justify-between border-b border-[#1f2b49] shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
-              <Zap size={14} className="text-white" strokeWidth={2.5} />
-            </div>
-            <span className="text-[15px] font-bold text-white tracking-tight">SomosKaino</span>
+            <KainoLogo size={32} className="rounded-xl shrink-0" />
+            <span className="text-[15px] font-bold text-[#dee5ff] tracking-tight">SomosKaino</span>
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-200 hover:bg-slate-800/60 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-xl border border-[#1f2b49] text-[#a3aac4] hover:text-[#dee5ff] transition-colors"
           >
             <X size={16} />
           </button>
@@ -103,7 +100,7 @@ export default function MobileNav({ tenantName, email }: { tenantName?: string; 
         <nav className="flex-1 px-3 py-4 overflow-y-auto flex flex-col gap-5">
           {sections.map((sec) => (
             <div key={sec.title}>
-              <p className="px-2 mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              <p className="px-2 mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3a4460]">
                 {sec.title}
               </p>
               <div className="flex flex-col gap-0.5">
@@ -116,18 +113,18 @@ export default function MobileNav({ tenantName, email }: { tenantName?: string; 
                       onClick={() => setOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                         active
-                          ? "bg-blue-600/10 text-blue-400 border border-blue-500/20"
-                          : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border border-transparent"
+                          ? "bg-[#FF6D00]/10 text-[#FF6D00] border border-[#FF6D00]/25"
+                          : "text-[#a3aac4] hover:bg-[#0d1a35] hover:text-[#dee5ff] border border-transparent"
                       }`}
                     >
                       <item.icon
                         size={16}
                         strokeWidth={active ? 2.25 : 1.75}
-                        className={active ? "text-blue-400" : "text-slate-500"}
+                        className={active ? "text-[#FF6D00]" : "text-[#3a4460]"}
                       />
                       <span className="flex-1">{item.label}</span>
                       {item.badge && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#40C4FF]" />
                       )}
                     </Link>
                   )
@@ -138,21 +135,24 @@ export default function MobileNav({ tenantName, email }: { tenantName?: string; 
         </nav>
 
         {/* Usuario */}
-        <div className="px-3 py-3 border-t border-slate-800/60 shrink-0">
+        <div className="px-3 py-3 border-t border-[#1f2b49] shrink-0">
           {tenantName && (
             <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl mb-1">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shrink-0">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: "linear-gradient(135deg, #FF6D00 0%, #e86200 100%)" }}
+              >
                 <span className="text-[10px] font-bold text-white">{initials}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-200 truncate">{tenantName}</p>
-                {email && <p className="text-[10px] text-slate-500 truncate">{email}</p>}
+                <p className="text-xs font-semibold text-[#dee5ff] truncate">{tenantName}</p>
+                {email && <p className="text-[10px] text-[#3a4460] truncate">{email}</p>}
               </div>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-[#a3aac4] hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
           >
             <LogOut size={12} />
             Cerrar sesión

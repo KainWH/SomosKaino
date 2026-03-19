@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   if (!tenant) return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 })
 
   const body = await request.json()
-  const { name, description, price, currency, image_url } = body
+  const { name, description, price, currency, image_url, category } = body
 
   if (!name?.trim()) {
     return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 })
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       price:       price ? Number(price) : null,
       currency:    currency || "USD",
       image_url:   image_url || null,
+      category:    category?.trim() || null,
     })
     .select()
     .single()

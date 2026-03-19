@@ -32,7 +32,7 @@ export async function GET() {
 
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v19.0/${config.phone_number_id}`,
+      `https://graph.facebook.com/v19.0/${config.phone_number_id}?fields=id,display_phone_number,verified_name,quality_rating,code_verification_status,name_status`,
       {
         headers: { Authorization: `Bearer ${config.access_token}` },
         cache: "no-store",
@@ -47,10 +47,12 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      ok:                 true,
-      displayPhoneNumber: data.display_phone_number,
-      verifiedName:       data.verified_name,
-      qualityRating:      data.quality_rating,
+      ok:                     true,
+      phoneNumberId:          config.phone_number_id,
+      displayPhoneNumber:     data.display_phone_number,
+      verifiedName:           data.verified_name,
+      qualityRating:          data.quality_rating,
+      codeVerificationStatus: data.code_verification_status ?? null,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

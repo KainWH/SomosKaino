@@ -125,7 +125,7 @@ export default async function ContactsPage() {
   })
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="flex-1 overflow-auto">
       <ContactsTable leads={leads} tenantId={tenant.id} />
     </div>
   )

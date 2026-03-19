@@ -13,19 +13,19 @@ type Conv    = {
 }
 
 const AVATAR_COLORS = [
-  "from-blue-500 to-blue-600",
-  "from-violet-500 to-violet-600",
-  "from-emerald-500 to-emerald-600",
-  "from-rose-500 to-rose-600",
-  "from-amber-500 to-amber-600",
-  "from-cyan-500 to-cyan-600",
+  "from-[#FF6D00] to-[#cc5700]",
+  "from-[#40C4FF] to-[#0099cc]",
+  "from-[#b36dff] to-[#8040cc]",
+  "from-[#FF6D00] to-[#ff9a4d]",
+  "from-[#00e5cc] to-[#00b3a0]",
+  "from-[#40C4FF] to-[#80D8FF]",
 ]
 
 const STATUS_TAGS: Record<string, { label: string; color: string }> = {
-  new:       { label: "Nuevo lead", color: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
-  qualified: { label: "Calificado", color: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
-  pending:   { label: "Pendiente",  color: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
-  resolved:  { label: "Resuelto",   color: "bg-slate-700/50 text-slate-400 border border-slate-700" },
+  new:       { label: "Nuevo lead", color: "bg-[#40C4FF]/10 text-[#40C4FF] border border-[#40C4FF]/25" },
+  qualified: { label: "Calificado", color: "bg-[#FF6D00]/10 text-[#FF6D00] border border-[#FF6D00]/25" },
+  pending:   { label: "Pendiente",  color: "bg-[#b36dff]/10 text-[#b36dff] border border-[#b36dff]/25" },
+  resolved:  { label: "Resuelto",   color: "bg-[#1f2b49] text-[#a3aac4] border border-[#1f2b49]" },
 }
 
 function getContact(conv: Conv): Contact | null {
@@ -74,42 +74,39 @@ export default function ConversationList({
       const name    = contact?.name ?? contact?.phone ?? ""
       return name.toLowerCase().includes(query.toLowerCase())
     })
-    .slice(0, 6)
 
   return (
-    <div className="h-full flex flex-col bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-800/60 overflow-hidden">
+    <div className="h-full flex flex-col rounded-2xl border border-[#1f2b49] overflow-hidden" style={{ background: "#0a1628" }}>
 
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between gap-3">
+      <div className="px-5 py-4 border-b border-[#1f2b49] flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-slate-200">Conversaciones activas</h2>
-          <p className="text-xs text-slate-500 mt-0.5">WhatsApp en tiempo real</p>
+          <h2 className="text-base font-semibold text-[#dee5ff]">Conversaciones activas</h2>
+          <p className="text-xs text-[#a3aac4] mt-0.5">WhatsApp en tiempo real</p>
         </div>
-        <Link href="/inbox" className="text-xs text-blue-400 font-medium flex items-center gap-0.5 hover:text-blue-300 transition-colors shrink-0">
+        <Link href="/inbox" className="text-xs text-[#40C4FF] font-medium flex items-center gap-0.5 hover:text-[#40C4FF]/80 transition-colors shrink-0">
           Ver todas <ChevronRight size={13} />
         </Link>
       </div>
 
       {/* Búsqueda */}
-      <div className="px-4 py-3 border-b border-slate-800/40">
+      <div className="px-4 py-3 border-b border-[#1f2b49]/60">
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#3a4460]" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar conversación..."
-            className="w-full pl-9 pr-3 py-2 text-sm bg-slate-800/50 border border-slate-700/40
-              rounded-xl text-slate-300 placeholder-slate-600
-              focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-[#060e20] border border-[#1f2b49] rounded-xl text-[#dee5ff] placeholder-[#3a4460] focus:outline-none focus:ring-1 focus:ring-[#FF6D00]/30 focus:border-[#FF6D00]/40 transition-all"
           />
         </div>
       </div>
 
       {/* Lista */}
-      <div className="divide-y divide-slate-800/40 flex-1 overflow-y-auto">
+      <div className="divide-y divide-[#1f2b49]/60 flex-1 overflow-y-auto">
         {open.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3 text-slate-600">
+          <div className="py-16 flex flex-col items-center gap-3 text-[#3a4460]">
             <Bot size={36} strokeWidth={1.5} />
             <p className="text-base">Sin conversaciones activas</p>
           </div>
@@ -131,8 +128,8 @@ export default function ConversationList({
                 href={`/inbox/${conv.id}`}
                 className={`flex items-center gap-4 px-5 py-4 transition-all duration-150 border-l-2 ${
                   isActive
-                    ? "border-l-blue-500 bg-blue-500/5"
-                    : "border-l-transparent hover:bg-slate-800/40"
+                    ? "border-l-[#FF6D00] bg-[#FF6D00]/5"
+                    : "border-l-transparent hover:bg-[#0d1a35]"
                 }`}
               >
                 {/* Avatar */}
@@ -141,20 +138,20 @@ export default function ConversationList({
                     <span className="text-sm font-bold text-white">{initials}</span>
                   </div>
                   {!conv.ai_paused && (
-                    <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-900 rounded-full" />
+                    <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-[#FF6D00] border-2 border-[#0a1628] rounded-full" />
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-[15px] font-semibold text-slate-200 truncate">{name}</span>
-                    <span className="text-xs text-slate-500 shrink-0" suppressHydrationWarning>
+                    <span className="text-[15px] font-semibold text-[#dee5ff] truncate">{name}</span>
+                    <span className="text-xs text-[#a3aac4] shrink-0" suppressHydrationWarning>
                       {formatTime(conv.updated_at)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-slate-500 truncate flex-1">{preview}</p>
+                    <p className="text-sm text-[#a3aac4] truncate flex-1">{preview}</p>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${tag.color}`}>
                       {tag.label}
                     </span>

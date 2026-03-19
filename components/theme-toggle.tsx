@@ -24,7 +24,7 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       title={dark ? "Modo claro" : "Modo oscuro"}
-      className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
+      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#a3aac4] hover:text-[#dee5ff] hover:bg-[#0d1a35] transition-colors"
     >
       {dark ? (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="w-4.5 h-4.5">

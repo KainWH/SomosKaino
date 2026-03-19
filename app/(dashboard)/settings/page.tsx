@@ -1,10 +1,8 @@
 // Configuración — Server Component
-// Carga los datos actuales de Supabase y los pasa a los formularios
 
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import WhatsappForm from "./whatsapp-form"
-import AiForm from "./ai-form"
+import SettingsDashboard from "./settings-dashboard"
 
 export default async function SettingsPage() {
   const supabase = createClient()
@@ -12,47 +10,24 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  // Obtener el tenant del usuario
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("id")
+    .select("id, name")
     .eq("owner_id", user.id)
     .single()
 
   if (!tenant) redirect("/login")
 
-  // Cargar configuraciones actuales en paralelo
-  const [{ data: whatsappConfig }, { data: aiConfig }] = await Promise.all([
-    supabase
-      .from("whatsapp_configs")
-      .select("id, tenant_id, phone_number_id, phone_display, is_configured, created_at, updated_at")
-      .eq("tenant_id", tenant.id)
-      .single(),
-    supabase
-      .from("ai_configs")
-      .select("*")
-      .eq("tenant_id", tenant.id)
-      .single(),
-  ])
+  const { data: whatsappConfig } = await supabase
+    .from("whatsapp_configs")
+    .select("id, tenant_id, phone_number_id, phone_display, is_configured, created_at, updated_at")
+    .eq("tenant_id", tenant.id)
+    .single()
 
   return (
-    <div className="flex-1 overflow-auto p-6">
-    <div className="flex flex-col gap-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
-        <p className="text-gray-500 text-sm">Conecta WhatsApp y personaliza tu IA</p>
-      </div>
-
-      <WhatsappForm config={whatsappConfig} />
-      <AiForm config={aiConfig} />
-
-      <div className="bg-gray-50 border border-dashed rounded-xl p-4 text-sm text-gray-500 text-center">
-        El catálogo de productos se gestiona en{" "}
-        <a href="/knowledge" className="text-green-600 font-medium hover:underline">
-          Base de Conocimiento
-        </a>
-      </div>
-    </div>
-    </div>
+    <SettingsDashboard
+      whatsappConfig={whatsappConfig}
+      tenantName={tenant.name ?? ""}
+    />
   )
 }

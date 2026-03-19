@@ -1,86 +1,165 @@
 import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { redirect }     from "next/navigation"
+import ReportsDashboard from "./reports-dashboard"
 
 export default async function ReportsPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const { data: tenant } = await supabase.from("tenants").select("id").eq("owner_id", user.id).single()
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id, name")
+    .eq("owner_id", user.id)
+    .single()
   if (!tenant) redirect("/login")
 
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const now          = new Date()
+  const days30Ago    = new Date(now); days30Ago.setDate(now.getDate() - 30)
+  const days7Ago     = new Date(now); days7Ago.setDate(now.getDate() - 7)
 
+  // ── Parallel fetches ────────────────────────────────────────────────────────
   const [
-    { count: totalConvs },
-    { count: totalLeads },
-    { count: totalAiReplies },
-    { count: totalProducts },
+    { data: convs30 },
+    { data: messages30 },
+    { data: contacts },
+    { data: products },
   ] = await Promise.all([
-    supabase.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", sevenDaysAgo.toISOString()),
-    supabase.from("contacts").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).gte("created_at", sevenDaysAgo.toISOString()),
-    supabase.from("messages").select("*, conversations!inner(tenant_id)", { count: "exact", head: true })
-      .eq("conversations.tenant_id", tenant.id).eq("sent_by_ai", true).gte("created_at", sevenDaysAgo.toISOString()),
-    supabase.from("catalog_products").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("enabled", true),
+    // All conversations last 30 days
+    supabase
+      .from("conversations")
+      .select("id, created_at, contact_id")
+      .eq("tenant_id", tenant.id)
+      .gte("created_at", days30Ago.toISOString())
+      .order("created_at", { ascending: true }),
+
+    // All messages last 30 days (with ai flag)
+    supabase
+      .from("messages")
+      .select("id, sent_by_ai, created_at, conversations!inner(tenant_id)")
+      .eq("conversations.tenant_id", tenant.id)
+      .gte("created_at", days30Ago.toISOString())
+      .order("created_at", { ascending: true }),
+
+    // Contacts with conversation count
+    supabase
+      .from("contacts")
+      .select("id, name, phone, created_at, conversations(count)")
+      .eq("tenant_id", tenant.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+
+    // Catalog products
+    supabase
+      .from("catalog_products")
+      .select("id, name, price, currency, enabled, created_at")
+      .eq("tenant_id", tenant.id)
+      .order("price", { ascending: false }),
   ])
 
-  const stats = [
-    { label: "Conversaciones", sublabel: "últimos 7 días", value: totalConvs ?? 0, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
-    { label: "Leads captados", sublabel: "últimos 7 días", value: totalLeads ?? 0, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/20" },
-    { label: "Respuestas IA", sublabel: "últimos 7 días", value: totalAiReplies ?? 0, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-900/20" },
-    { label: "Productos activos", sublabel: "en catálogo", value: totalProducts ?? 0, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20" },
+  // ── Activity chart data (last 30 days, grouped by day) ──────────────────────
+  const build30Days = () => {
+    const days: string[] = []
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(now.getDate() - i)
+      days.push(d.toISOString().slice(0, 10))
+    }
+    return days
+  }
+  const allDays = build30Days()
+
+  const convsByDay = (convs30 ?? []).reduce<Record<string, number>>((acc, c) => {
+    const day = c.created_at.slice(0, 10)
+    acc[day] = (acc[day] || 0) + 1
+    return acc
+  }, {})
+
+  const msgsByDay = (messages30 ?? []).reduce<Record<string, number>>((acc, m) => {
+    const day = m.created_at.slice(0, 10)
+    acc[day] = (acc[day] || 0) + 1
+    return acc
+  }, {})
+
+  const aiMsgsByDay = (messages30 ?? []).filter(m => m.sent_by_ai).reduce<Record<string, number>>((acc, m) => {
+    const day = m.created_at.slice(0, 10)
+    acc[day] = (acc[day] || 0) + 1
+    return acc
+  }, {})
+
+  const activityData = allDays.map(day => {
+    const d = new Date(day)
+    const label = d.toLocaleDateString("es-DO", { day: "numeric", month: "short" })
+    return {
+      day: label,
+      conversaciones: convsByDay[day] || 0,
+      mensajes:        msgsByDay[day]  || 0,
+      respuestasIA:    aiMsgsByDay[day] || 0,
+    }
+  })
+
+  // ── AI performance stats ────────────────────────────────────────────────────
+  const totalMsgs   = (messages30 ?? []).length
+  const aiMsgs      = (messages30 ?? []).filter(m => m.sent_by_ai).length
+  const humanMsgs   = totalMsgs - aiMsgs
+  const aiRate      = totalMsgs > 0 ? Math.round((aiMsgs / totalMsgs) * 100) : 0
+  const totalConvs  = (convs30 ?? []).length
+
+  // 7-day window for "this week" comparison
+  const convs7   = (convs30 ?? []).filter(c => c.created_at >= days7Ago.toISOString()).length
+  const msgs7    = (messages30 ?? []).filter(m => m.created_at >= days7Ago.toISOString()).length
+
+  const aiPerfData = [
+    { name: "IA",    value: aiMsgs,    fill: "#FF6D00" },
+    { name: "Human", value: humanMsgs, fill: "#40C4FF" },
   ]
 
+  // ── Top clients ─────────────────────────────────────────────────────────────
+  const topClients = (contacts ?? [])
+    .map(c => ({
+      id:     c.id,
+      name:   c.name || c.phone,
+      phone:  c.phone,
+      convs:  (c.conversations as any[])?.[0]?.count ?? 0,
+      since:  c.created_at,
+    }))
+    .sort((a, b) => b.convs - a.convs)
+    .slice(0, 10)
+
+  const maxConvs = Math.max(1, ...topClients.map(c => c.convs))
+
+  // ── Products ─────────────────────────────────────────────────────────────────
+  const activeProducts   = (products ?? []).filter(p => p.enabled)
+  const inactiveProducts = (products ?? []).filter(p => !p.enabled)
+  const maxPrice         = Math.max(1, ...(products ?? []).map(p => p.price ?? 0))
+
+  const productChartData = (products ?? [])
+    .filter(p => p.price != null)
+    .slice(0, 8)
+    .map(p => ({
+      name:    p.name.length > 16 ? p.name.slice(0, 14) + "…" : p.name,
+      precio:  p.price ?? 0,
+      currency: p.currency,
+      enabled: p.enabled,
+    }))
+
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-950">
-      <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Reportes</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Análisis y métricas de tu negocio</p>
-      </div>
-
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl flex flex-col gap-6">
-
-          {/* Métricas de la semana */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Últimos 7 días</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {stats.map((s) => (
-                <div key={s.label} className={`${s.bg} rounded-xl p-5`}>
-                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">{s.label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{s.sublabel}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Próximas funciones */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-6">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Próximamente en Reportes</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { icon: "📊", title: "Ventas por período", desc: "Gráficos de ventas diarias, semanales y mensuales" },
-                { icon: "🗺️", title: "Ventas por zona", desc: "Cibao, Gran Santo Domingo, Este y más" },
-                { icon: "📱", title: "Productos más vendidos", desc: "Ranking de tus productos con mayor demanda" },
-                { icon: "👥", title: "Clientes frecuentes", desc: "Quiénes compran más y con qué frecuencia" },
-                { icon: "🤖", title: "Rendimiento del agente IA", desc: "Tasa de respuesta, leads convertidos" },
-                { icon: "📦", title: "Rotación de inventario", desc: "Qué productos se mueven más rápido" },
-              ].map((f) => (
-                <div key={f.title} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800">
-                  <span className="text-xl shrink-0 mt-0.5">{f.icon}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{f.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{f.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
+    <ReportsDashboard
+      activityData={activityData}
+      aiPerfData={aiPerfData}
+      aiRate={aiRate}
+      totalConvs={totalConvs}
+      totalMsgs={totalMsgs}
+      aiMsgs={aiMsgs}
+      convs7={convs7}
+      msgs7={msgs7}
+      topClients={topClients}
+      maxConvs={maxConvs}
+      productChartData={productChartData}
+      activeCount={activeProducts.length}
+      inactiveCount={inactiveProducts.length}
+      maxPrice={maxPrice}
+      totalProducts={(products ?? []).length}
+    />
   )
 }

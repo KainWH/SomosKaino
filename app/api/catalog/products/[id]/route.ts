@@ -24,6 +24,7 @@ export async function PATCH(
   if (body.price       !== undefined) updates.price       = body.price ? Number(body.price) : null
   if (body.currency    !== undefined) updates.currency    = body.currency
   if (body.image_url   !== undefined) updates.image_url   = body.image_url || null
+  if (body.category    !== undefined) updates.category    = body.category?.trim() || null
   if (body.enabled     !== undefined) updates.enabled     = body.enabled
 
   const { data, error } = await supabase

@@ -3,16 +3,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── SomosKaino design tokens (Midnight Ember) ── */
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #030712;
-    --foreground: #f8fafc;
-  }
+  --bg-base:     #060e20;
+  --bg-surface:  #0a1628;
+  --bg-elevated: #0d1a35;
+  --border:      #1f2b49;
+  --accent-orange: #FF6D00;
+  --accent-blue:   #40C4FF;
+  --text-primary:  #dee5ff;
+  --text-secondary:#a3aac4;
+  --text-muted:    #3a4460;
 }
 
 /* Scroll suave en todo el sitio */
@@ -21,8 +22,8 @@
 /* Offset para navbar fijo en la landing */
 html { scroll-padding-top: 4.5rem; }
 
-/* Scrollbar elegante */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+/* Scrollbar Midnight Ember */
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
-.dark ::-webkit-scrollbar-thumb { background: #374151; }
+::-webkit-scrollbar-thumb { background: #1f2b49; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #FF6D00; }

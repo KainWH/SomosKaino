@@ -85,7 +85,7 @@ export default function SidebarNav() {
     <nav className="flex-1 px-3 py-3 flex flex-col gap-4 overflow-y-auto">
       {sections.map((section) => (
         <div key={section.title}>
-          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-[#a3aac4]">
             {section.title}
           </p>
           <div className="flex flex-col gap-0.5">
@@ -97,16 +97,16 @@ export default function SidebarNav() {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                      ? "bg-[#FF6D00]/10 text-[#FF6D00] border border-[#FF6D00]/25"
+                      : "text-[#a3aac4] hover:bg-[#0d1a35] hover:text-[#dee5ff]"
                   }`}
                 >
-                  <span className={isActive ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"}>
+                  <span className={isActive ? "text-[#FF6D00]" : "text-[#a3aac4]"}>
                     {item.icon}
                   </span>
                   <span className="flex-1">{item.label}</span>
                   {item.badge && (
-                    <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-1.5 py-0.5 rounded-full font-semibold">
+                    <span className="text-[10px] bg-[#FF6D00]/10 text-[#FF6D00] border border-[#FF6D00]/25 px-1.5 py-0.5 rounded-full font-semibold">
                       {item.badge}
                     </span>
                   )}

@@ -89,6 +89,7 @@ export type CatalogProduct = {
   price:       number | null
   currency:    string
   image_url:   string | null
+  category:    string | null
   enabled:     boolean
   created_at:  string
   updated_at:  string
