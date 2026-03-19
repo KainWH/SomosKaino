@@ -559,7 +559,7 @@ async function processWebhookMessage(body: any) {
         await sendImageFromUrl(imageUrl, from)
         await supabase.from("messages").insert({
           conversation_id: conversationId,
-          content:         `🖼️ Imagen de ${productName}`,
+          content:         imageUrl,
           direction:       "outbound",
           sent_by_ai:      true,
           message_type:    "image",

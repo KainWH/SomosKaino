@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect, notFound } from "next/navigation"
 import MessagesView          from "./messages-view"
 import MessageInput          from "./message-input"
-import ProductSearch         from "./product-search"
 import LeadDetails           from "./lead-details"
 import ConversationShell     from "./conversation-shell"
 
@@ -90,9 +89,6 @@ export default async function ConversationPage({ params }: { params: { id: strin
           contactInitial={displayName[0].toUpperCase()}
           conversationId={conversation.id}
         />
-      </div>
-      <div className="px-3 pt-2 pb-0 bg-slate-900/80 border-t border-slate-800/60">
-        <ProductSearch conversationId={conversation.id} />
       </div>
       <MessageInput conversationId={conversation.id} />
     </ConversationShell>
