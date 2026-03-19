@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { waitUntil } from "@vercel/functions"
 import { createClient } from "@supabase/supabase-js"
 import { generateReply, transcribeAudio, describeImage } from "@/lib/ai"
-import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppLocation, uploadMedia, markAsRead, downloadMedia, sendWhatsAppTemplate } from "@/lib/whatsapp"
+import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppLocation, sendWhatsAppImageByUrl, uploadMedia, markAsRead, downloadMedia, sendWhatsAppTemplate } from "@/lib/whatsapp"
 import { getPropertyData, findImageUrl } from "@/lib/sheets"
 import { validateWebhookSignature } from "@/lib/whatsapp-utils"
 
@@ -315,31 +315,6 @@ async function processWebhookMessage(body: any) {
     accessToken:   whatsappConfig.access_token!,
   })
 
-  // ── Helper: enviar imagen ─────────────────────────────────────────────────
-  const sendImageToPhone = async (buffer: Buffer, mimeType: string, to: string) => {
-    const ext     = mimeType.split("/")[1]?.split(";")[0] ?? "jpg"
-    const mediaId = await uploadMedia({
-      buffer, mimeType,
-      filename:      `imagen.${ext}`,
-      phoneNumberId: whatsappConfig.phone_number_id!,
-      accessToken:   whatsappConfig.access_token!,
-    })
-    if (!mediaId) throw new Error("uploadMedia devolvió null")
-    await sendWhatsAppMedia({
-      to, mediaId, type: "image",
-      phoneNumberId: whatsappConfig.phone_number_id!,
-      accessToken:   whatsappConfig.access_token!,
-    })
-  }
-
-  const sendImageFromUrl = async (imageUrl: string, to: string) => {
-    const imgRes = await fetch(imageUrl)
-    if (!imgRes.ok) throw new Error(`No se pudo descargar imagen: ${imgRes.status}`)
-    const mimeType = imgRes.headers.get("content-type") ?? "image/jpeg"
-    const buffer   = Buffer.from(await imgRes.arrayBuffer())
-    await sendImageToPhone(buffer, mimeType, to)
-  }
-
   // ── Respuesta automática con IA ───────────────────────────────────────────
   const { data: aiConfig } = await supabase
     .from("ai_configs")
@@ -556,7 +531,12 @@ async function processWebhookMessage(body: any) {
       findImageUrl(productName, sheetData.imageMap)
     if (imageUrl) {
       try {
-        await sendImageFromUrl(imageUrl, from)
+        await sendWhatsAppImageByUrl({
+          to:            from,
+          url:           imageUrl,
+          phoneNumberId: whatsappConfig.phone_number_id!,
+          accessToken:   whatsappConfig.access_token!,
+        })
         await supabase.from("messages").insert({
           conversation_id: conversationId,
           content:         imageUrl,
