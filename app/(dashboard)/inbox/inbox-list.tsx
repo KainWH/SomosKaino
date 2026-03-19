@@ -64,7 +64,8 @@ export default function InboxList({ initialConversations, tenantId }: { initialC
 
   useEffect(() => {
     const supabase = createClient()
-    const poll = async () => {
+
+    const refresh = async () => {
       const { data } = await supabase
         .from("conversations")
         .select("id, status, ai_paused, updated_at, deleted_at, contacts ( id, name, phone ), messages ( content, direction, sent_by_ai, created_at )")
@@ -72,8 +73,24 @@ export default function InboxList({ initialConversations, tenantId }: { initialC
         .order("updated_at", { ascending: false })
       if (data) setConversations(data as Conv[])
     }
-    const interval = setInterval(poll, 8000)
-    return () => clearInterval(interval)
+
+    // Fetch immediately on mount
+    refresh()
+
+    // Real-time: re-fetch whenever a message is inserted or a conversation changes
+    const channel = supabase
+      .channel("inbox-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations" }, refresh)
+      .subscribe()
+
+    // Fallback poll every 8 s (covers cases where realtime isn't enabled)
+    const interval = setInterval(refresh, 8000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(interval)
+    }
   }, [tenantId])
 
   async function handleDelete(id: string) {

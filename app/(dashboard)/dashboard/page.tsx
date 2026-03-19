@@ -136,7 +136,7 @@ export default async function DashboardPage() {
 
         {/* Chat — 3/5 */}
         <div className="lg:col-span-3 min-h-0 overflow-hidden">
-          <ConversationList conversations={(conversations ?? []) as any} />
+          <ConversationList conversations={(conversations ?? []) as any} tenantId={tenant.id} />
         </div>
 
         {/* Panel derecho — 2/5 */}

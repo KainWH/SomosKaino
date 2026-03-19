@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { Bot, ChevronRight, Search } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 type Msg     = { content: string; direction: "inbound" | "outbound"; sent_by_ai: boolean; created_at: string }
 type Contact = { id: string; name: string | null; phone: string }
@@ -58,13 +59,44 @@ function avatarColor(name: string) {
 }
 
 export default function ConversationList({
-  conversations,
+  conversations: initial,
   activeId,
+  tenantId,
 }: {
   conversations: Conv[]
   activeId?: string
+  tenantId?: string
 }) {
+  const [conversations, setConversations] = useState<Conv[]>(initial)
   const [query, setQuery] = useState("")
+
+  useEffect(() => {
+    if (!tenantId) return
+    const supabase = createClient()
+
+    const refresh = async () => {
+      const { data } = await supabase
+        .from("conversations")
+        .select("id, status, ai_paused, updated_at, contacts ( id, name, phone ), messages ( content, direction, sent_by_ai, created_at )")
+        .eq("tenant_id", tenantId)
+        .eq("status", "open")
+        .order("updated_at", { ascending: false })
+        .limit(8)
+      if (data) setConversations(data as Conv[])
+    }
+
+    const channel = supabase
+      .channel("convlist-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations" }, refresh)
+      .subscribe()
+
+    const interval = setInterval(refresh, 8000)
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(interval)
+    }
+  }, [tenantId])
 
   const open = conversations
     .filter((c) => c.status === "open")
