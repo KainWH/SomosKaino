@@ -78,10 +78,12 @@ export default function MessagesView({ messages: initial, avatarColor, contactIn
         // Banner especial para mensajes de origen de anuncio
         if (msg.message_type === "referral") {
           let headline = msg.content
+          let body:     string | null = null
           let platform = "Meta Ads"
           try {
             const parsed = JSON.parse(msg.content)
             headline = parsed.headline ?? msg.content
+            body     = parsed.body ?? null
             platform = parsed.platform ?? "Meta Ads"
           } catch { /* formato antiguo */ }
 
@@ -97,9 +99,14 @@ export default function MessagesView({ messages: initial, avatarColor, contactIn
                 </div>
               )}
               <div className="flex justify-center my-3">
-                <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium px-4 py-2 rounded-full">
-                  <Megaphone size={12} />
-                  <span>{platform} · <span className="font-bold">{headline}</span></span>
+                <div className="flex flex-col items-center gap-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium px-4 py-2.5 rounded-2xl max-w-xs text-center">
+                  <div className="flex items-center gap-2">
+                    <Megaphone size={12} />
+                    <span>{platform} · <span className="font-bold">{headline}</span></span>
+                  </div>
+                  {body && (
+                    <span className="text-amber-300/80 font-normal">{body}</span>
+                  )}
                 </div>
               </div>
             </div>

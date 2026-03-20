@@ -266,7 +266,8 @@ async function processWebhookMessage(body: any) {
                        : sourceUrl.includes("facebook")  ? "Facebook"
                        : "Meta Ads"
 
-      const adNote = `[Origen: Anuncio "${referral.headline}" vía ${platform}${referral.source_id ? ` (ID: ${referral.source_id})` : ""}]`
+      const adProduct = referral.body && referral.body !== referral.headline ? ` — Producto: "${referral.body}"` : ""
+      const adNote = `[Origen: Anuncio "${referral.headline}"${adProduct} vía ${platform}${referral.source_id ? ` (ID: ${referral.source_id})` : ""}]`
       const { data: currentContact } = await supabase
         .from("contacts").select("notes").eq("id", contact.id).single()
       const updatedNotes = currentContact?.notes
@@ -281,6 +282,7 @@ async function processWebhookMessage(body: any) {
           conversation_id: conversationId,
           content:         JSON.stringify({
             headline:  referral.headline,
+            body:      referral.body ?? null,
             platform,
             image_url: referral.image_url ?? null,
           }),
@@ -405,9 +407,9 @@ async function processWebhookMessage(body: any) {
     ? `${aiConfig.system_prompt}\n\n${knowledgeContext}`
     : aiConfig.system_prompt
 
-  // Contexto del anuncio: en el primer mensaje usamos el referral en tiempo real,
-  // en mensajes siguientes usamos las notas del contacto (donde ya quedó guardado).
-  const adHeadline = referral?.headline
+  // Contexto del anuncio: usamos headline + body para identificar el producto.
+  // El body suele tener el nombre del producto cuando el headline es genérico (ej: nombre de la tienda).
+  const adHeadline = referral?.body || referral?.headline
     ?? contactNotes?.match(/\[Origen: Anuncio "([^"]+)"/)?.[1]
     ?? null
 
