@@ -409,7 +409,7 @@ async function processWebhookMessage(body: any) {
 
   // Contexto del anuncio: usamos headline + body para identificar el producto.
   // El body suele tener el nombre del producto cuando el headline es genérico (ej: nombre de la tienda).
-  const adHeadline = referral?.body || referral?.headline
+  const adHeadline = (referral?.body || referral?.headline)
     ?? contactNotes?.match(/\[Origen: Anuncio "([^"]+)"/)?.[1]
     ?? null
 
