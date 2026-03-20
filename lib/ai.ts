@@ -108,8 +108,11 @@ export async function generateReply({
   }
 
   try {
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "")
-    const parsed  = JSON.parse(cleaned)
+    // Eliminar markdown si existe, luego intentar extraer el JSON aunque haya texto extra alrededor
+    const stripped = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "")
+    const jsonMatch = stripped.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error("No JSON found")
+    const parsed  = JSON.parse(jsonMatch[0])
     const reply   = (parsed.reply ?? "").trim()
     // Fallback de seguridad: si el reply incluye "Dame un momento" pero handover no está en true, forzarlo
     const handover = parsed.handover === true || reply.toLowerCase().includes("dame un momento")
@@ -121,7 +124,7 @@ export async function generateReply({
       leadNotes:    parsed.lead_notes && parsed.lead_notes !== "null" ? parsed.lead_notes.trim() : null,
     }
   } catch {
-    console.warn("⚠️ Gemini no devolvió JSON válido, usando texto plano")
-    return { reply: raw, productName: null, sendLocation: false, handover: false, leadNotes: null }
+    console.warn("⚠️ Gemini no devolvió JSON válido:", raw.substring(0, 200))
+    return { reply: "", productName: null, sendLocation: false, handover: false, leadNotes: null }
   }
 }

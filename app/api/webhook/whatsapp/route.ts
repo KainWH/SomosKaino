@@ -130,6 +130,14 @@ async function processWebhookMessage(body: any) {
 
   const tenantId = whatsappConfig.tenant_id
 
+  const { data: tenantData } = await supabase
+    .from("tenants")
+    .select("company, name")
+    .eq("id", tenantId)
+    .single()
+
+  const companyName = tenantData?.company || tenantData?.name || null
+
   const { data: catalogConfig } = await supabase
     .from("catalog_configs")
     .select("sheet_id, sheet_gid, enabled")
@@ -252,20 +260,20 @@ async function processWebhookMessage(body: any) {
 
     // Si el cliente llegó desde un anuncio, guardar nota + banner en el chat
     if (referral?.headline) {
-      const adNote = `[Origen: Anuncio "${referral.headline}"${referral.source_id ? ` (ID: ${referral.source_id})` : ""}]`
+      // Detectar plataforma de origen
+      const sourceUrl  = referral.source_url ?? ""
+      const platform   = sourceUrl.includes("instagram") ? "Instagram"
+                       : sourceUrl.includes("facebook")  ? "Facebook"
+                       : "Meta Ads"
+
+      const adNote = `[Origen: Anuncio "${referral.headline}" vía ${platform}${referral.source_id ? ` (ID: ${referral.source_id})` : ""}]`
       const { data: currentContact } = await supabase
         .from("contacts").select("notes").eq("id", contact.id).single()
       const updatedNotes = currentContact?.notes
         ? `${currentContact.notes}\n${adNote}`
         : adNote
       await supabase.from("contacts").update({ notes: updatedNotes }).eq("id", contact.id)
-      console.log(`📣 Cliente de anuncio "${referral.headline}" — nota guardada para ${from}`)
-
-      // Detectar plataforma de origen
-      const sourceUrl  = referral.source_url ?? ""
-      const platform   = sourceUrl.includes("instagram") ? "Instagram"
-                       : sourceUrl.includes("facebook")  ? "Facebook"
-                       : "Meta Ads"
+      console.log(`📣 Cliente de anuncio "${referral.headline}" vía ${platform} — nota guardada para ${from}`)
 
       // Insertar banner de origen en el chat (siempre, con o sin imagen)
       const chatMessages: object[] = [
@@ -403,15 +411,36 @@ async function processWebhookMessage(body: any) {
     ?? contactNotes?.match(/\[Origen: Anuncio "([^"]+)"/)?.[1]
     ?? null
 
+  const adPlatform = referral
+    ? ((referral.source_url ?? "").includes("instagram") ? "Instagram"
+      : (referral.source_url ?? "").includes("facebook") ? "Facebook"
+      : "Meta Ads")
+    : contactNotes?.match(/\[Origen: Anuncio "[^"]+" vía ([^\s(]+)/)?.[1]
+    ?? "Meta Ads"
 
+  // Buscar el producto del anuncio en el catálogo para dar contexto completo al AI
+  const adProduct = adHeadline
+    ? kainoProducts.find(p =>
+        p.name.toLowerCase().includes(adHeadline.toLowerCase()) ||
+        adHeadline.toLowerCase().includes(p.name.toLowerCase())
+      )
+    : null
+
+  const adProductInfo = adProduct
+    ? `Detalles del producto: ${adProduct.name}${adProduct.description ? ` — ${adProduct.description}` : ""}${adProduct.price != null ? ` — Precio: ${adProduct.currency} ${adProduct.price}` : ""}${adProduct.image_url ? " [tiene foto disponible]" : ""}.`
+    : ""
 
   const referralContext = adHeadline
-    ? `\n\nCONTEXTO DE ORIGEN: Este cliente llegó haciendo clic en un anuncio de Instagram sobre "${adHeadline}". Su primer mensaje ("Hello! Can I get more info on this?" u otro similar) se refiere DIRECTAMENTE a ese producto. NUNCA le preguntes a qué producto se refiere — ya sabes que es "${adHeadline}". Respóndele de inmediato con información sobre ese producto.`
+    ? `\n\nCONTEXTO CRÍTICO — ANUNCIO DE PAGO: Este cliente llegó haciendo clic en un anuncio de ${adPlatform} titulado "${adHeadline}". Su primer mensaje (sea "Hola", "Hello", "info", o cualquier otro) se refiere DIRECTAMENTE a ese anuncio/producto. ${adProductInfo} REGLAS OBLIGATORIAS: (1) NUNCA preguntes a qué producto se refiere — ya lo sabes. (2) Responde de inmediato con información sobre "${adHeadline}". (3) Si el cliente pregunta "¿cuánto cuesta?", "¿qué incluye?", "¿tienen stock?" sin especificar producto, SIEMPRE asume que pregunta por "${adHeadline}".`
+    : ""
+
+  const companyContext = companyName
+    ? `\n\nNOMBRE DE LA EMPRESA: Eres el asistente virtual de "${companyName}". Cuando saludes por primera vez, identifícate como asistente de ${companyName} (ej: "¡Hola! Gracias por escribir a ${companyName}, ¿en qué te puedo ayudar?"). NUNCA uses un saludo genérico sin mencionar la empresa.`
     : ""
 
   const systemPrompt = history.length > 0
-    ? `${basePrompt}${referralContext}\n\nIMPORTANTE: Ya has interactuado con este cliente antes. NO vuelvas a saludarlo. Continúa la conversación de forma natural.`
-    : `${basePrompt}${referralContext}`
+    ? `${basePrompt}${companyContext}${referralContext}\n\nIMPORTANTE: Ya has interactuado con este cliente antes. NO vuelvas a saludarlo. Continúa la conversación de forma natural.`
+    : `${basePrompt}${companyContext}${referralContext}`
 
   const sendFallback = async () => {
     const fallback = "En este momento tuve un inconveniente para responder. Vuelvo enseguida. 🙏"
