@@ -257,26 +257,36 @@ async function processWebhookMessage(body: any) {
 
     conversationId    = newConversation.id
     isNewConversation = true
+  }
 
-    // Si el cliente llegó desde un anuncio, guardar nota + banner en el chat
-    if (referral?.headline) {
-      // Detectar plataforma de origen
-      const sourceUrl  = referral.source_url ?? ""
-      const platform   = sourceUrl.includes("instagram") ? "Instagram"
-                       : sourceUrl.includes("facebook")  ? "Facebook"
-                       : "Meta Ads"
+  // Si el cliente llegó desde un anuncio, guardar nota + banner en el chat
+  // Se aplica tanto a conversaciones nuevas como existentes (pero solo una vez por conversación)
+  if (referral?.headline) {
+    const sourceUrl  = referral.source_url ?? ""
+    const platform   = sourceUrl.includes("instagram") ? "Instagram"
+                     : sourceUrl.includes("facebook")  ? "Facebook"
+                     : "Meta Ads"
 
-      const adProduct = referral.body && referral.body !== referral.headline ? ` — Producto: "${referral.body}"` : ""
-      const adNote = `[Origen: Anuncio "${referral.headline}"${adProduct} vía ${platform}${referral.source_id ? ` (ID: ${referral.source_id})` : ""}]`
-      const { data: currentContact } = await supabase
-        .from("contacts").select("notes").eq("id", contact.id).single()
-      const updatedNotes = currentContact?.notes
-        ? `${currentContact.notes}\n${adNote}`
-        : adNote
-      await supabase.from("contacts").update({ notes: updatedNotes }).eq("id", contact.id)
-      console.log(`📣 Cliente de anuncio "${referral.headline}" vía ${platform} — nota guardada para ${from}`)
+    const adProduct = referral.body && referral.body !== referral.headline ? ` — Producto: "${referral.body}"` : ""
+    const adNote = `[Origen: Anuncio "${referral.headline}"${adProduct} vía ${platform}${referral.source_id ? ` (ID: ${referral.source_id})` : ""}]`
+    const { data: currentContact } = await supabase
+      .from("contacts").select("notes").eq("id", contact.id).single()
+    const updatedNotes = currentContact?.notes
+      ? `${currentContact.notes}\n${adNote}`
+      : adNote
+    await supabase.from("contacts").update({ notes: updatedNotes }).eq("id", contact.id)
+    console.log(`📣 Cliente de anuncio "${referral.headline}" vía ${platform} — nota guardada para ${from}`)
 
-      // Insertar banner de origen en el chat (siempre, con o sin imagen)
+    // Insertar banner solo si no existe ya uno en esta conversación
+    const { data: existingBanner } = await supabase
+      .from("messages")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .eq("message_type", "referral")
+      .limit(1)
+      .maybeSingle()
+
+    if (!existingBanner) {
       const chatMessages: object[] = [
         {
           conversation_id: conversationId,
@@ -302,6 +312,8 @@ async function processWebhookMessage(body: any) {
       }
       await supabase.from("messages").insert(chatMessages)
       console.log(`📣 Banner de anuncio "${referral.headline}" guardado en el chat para ${from}`)
+    } else {
+      console.log(`📣 Banner de anuncio ya existente para conversación ${conversationId} — omitido`)
     }
   }
 
@@ -433,7 +445,7 @@ async function processWebhookMessage(body: any) {
     : ""
 
   const referralContext = adHeadline
-    ? `\n\nCONTEXTO CRÍTICO — ANUNCIO DE PAGO: Este cliente llegó haciendo clic en un anuncio de ${adPlatform} titulado "${adHeadline}". Su primer mensaje (sea "Hola", "Hello", "info", o cualquier otro) se refiere DIRECTAMENTE a ese anuncio/producto. ${adProductInfo} REGLAS OBLIGATORIAS: (1) NUNCA preguntes a qué producto se refiere — ya lo sabes. (2) Responde de inmediato con información sobre "${adHeadline}". (3) Si el cliente pregunta "¿cuánto cuesta?", "¿qué incluye?", "¿tienen stock?" sin especificar producto, SIEMPRE asume que pregunta por "${adHeadline}".`
+    ? `\n\nCONTEXTO CRÍTICO — ANUNCIO DE PAGO: Este cliente llegó haciendo clic en un anuncio de ${adPlatform} titulado "${adHeadline}". Su primer mensaje (sea "Hola", "Hello", "info", o cualquier otro) se refiere DIRECTAMENTE a ese anuncio/producto. ${adProductInfo} REGLAS OBLIGATORIAS: (1) NUNCA preguntes a qué producto se refiere — ya lo sabes. (2) ${isNewConversation ? `Es el PRIMER mensaje del cliente: salúdalo, menciona brevemente el producto "${adHeadline}" con su precio, pregúntale si lo quiere, y dile que ya le estás enviando la dirección de la tienda. Pon send_location en true.` : `Continúa la conversación sobre "${adHeadline}".`} (3) Si el cliente pregunta "¿cuánto cuesta?", "¿qué incluye?", "¿tienen stock?" sin especificar producto, SIEMPRE asume que pregunta por "${adHeadline}".`
     : ""
 
   const companyContext = companyName
@@ -472,8 +484,12 @@ async function processWebhookMessage(body: any) {
     return
   }
 
-  const { reply, productName, sendLocation, leadNotes } = aiReply
+  let { reply, productName, leadNotes } = aiReply
+  let sendLocation = aiReply.sendLocation
   const handover = aiReply.handover || reply.toLowerCase().includes("dame un momento")
+
+  // Forzar ubicación en el primer mensaje que llega de un anuncio
+  if (isNewConversation && adHeadline) sendLocation = true
   console.log(`🔀 handover=${handover}`)
 
   // Guardar notas del lead
@@ -549,6 +565,23 @@ async function processWebhookMessage(body: any) {
           whatsapp_message_id: sentLoc?.messages?.[0]?.id ?? null,
         })
         console.log(`📍 Ubicación enviada a ${from}: ${name}`)
+
+        // Enviar también la dirección escrita
+        if (address) {
+          const addressText = `📍 *${name}*\n${address}`
+          const sentAddr = await sendWhatsAppMessage({
+            to: from, message: addressText,
+            phoneNumberId: whatsappConfig.phone_number_id!,
+            accessToken:   whatsappConfig.access_token!,
+          })
+          await supabase.from("messages").insert({
+            conversation_id:     conversationId,
+            content:             addressText,
+            direction:           "outbound",
+            sent_by_ai:          true,
+            whatsapp_message_id: sentAddr?.messages?.[0]?.id ?? null,
+          })
+        }
       } catch (err) {
         console.error("❌ Error enviando ubicación:", err)
       }
