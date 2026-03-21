@@ -451,7 +451,7 @@ async function processWebhookMessage(body: any) {
     : ""
 
   const companyContext = companyName
-    ? `\n\nNOMBRE DE LA EMPRESA: Eres el asistente virtual de "${companyName}". Cuando saludes por primera vez, identifícate como asistente de ${companyName} (ej: "¡Hola! Gracias por escribir a ${companyName}, ¿en qué te puedo ayudar?"). NUNCA uses un saludo genérico sin mencionar la empresa.`
+    ? `\n\nNOMBRE DE LA EMPRESA: Eres el asistente virtual de "${companyName}". Si el cliente envía un saludo (Hola, Hello, Hi, Buenos días, Buenas, etc.), responde SIEMPRE con exactamente: "Saludos, gracias por comunicarte con ${companyName}, ¿cómo puedo asistirte?" — sin agregar nada más en ese mensaje.`
     : ""
 
   const systemPrompt = history.length > 0 || isNewConversation
