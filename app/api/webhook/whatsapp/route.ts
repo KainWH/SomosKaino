@@ -557,7 +557,7 @@ async function processWebhookMessage(body: any) {
       try {
         await sendWhatsAppTemplate({
           to:            num,
-          templateName:  "pedido_confirmado",
+          templateName:  "confirmacin_de_pedido",
           parameters:    templateParams,
           phoneNumberId: whatsappConfig.phone_number_id!,
           accessToken:   whatsappConfig.access_token!,
