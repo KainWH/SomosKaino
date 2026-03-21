@@ -348,13 +348,6 @@ async function processWebhookMessage(body: any) {
 
   if (!aiConfig?.enabled || aiPaused) return
 
-  // Si es conversación nueva y el cliente solo saludó, el greeting hardcodeado ya fue suficiente
-  const isGreetingOnly = /^(hola|hello|hi|hey|buenas?|buenos?\s*(d[ií]as?|tardes?|noches?)|good\s*(morning|afternoon|evening|day)|saludos?|greetings?|que\s*tal|what'?s?\s*up)[\s!.¡¿?😊👋]*$/i.test(textForAI.trim())
-  if (isNewConversation && isGreetingOnly && !adHeadline) {
-    console.log(`👋 Primer mensaje es saludo puro — greeting hardcodeado ya enviado, sin respuesta AI`)
-    return
-  }
-
   // Historial de conversación
   const { data: recentMessages } = await supabase
     .from("messages")
@@ -431,6 +424,13 @@ async function processWebhookMessage(body: any) {
   const adHeadline = (referral?.body || referral?.headline)
     ?? contactNotes?.match(/\[Origen: Anuncio "([^"]+)"/)?.[1]
     ?? null
+
+  // Si es conversación nueva y el cliente solo saludó, el greeting hardcodeado ya fue suficiente
+  const isGreetingOnly = /^(hola|hello|hi|hey|buenas?|buenos?\s*(d[ií]as?|tardes?|noches?)|good\s*(morning|afternoon|evening|day)|saludos?|greetings?|que\s*tal|what'?s?\s*up)[\s!.¡¿?😊👋]*$/i.test(textForAI.trim())
+  if (isNewConversation && isGreetingOnly && !adHeadline) {
+    console.log(`👋 Primer mensaje es saludo puro — greeting hardcodeado ya enviado, sin respuesta AI`)
+    return
+  }
 
   const adPlatform = referral
     ? ((referral.source_url ?? "").includes("instagram") ? "Instagram"
