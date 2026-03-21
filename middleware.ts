@@ -28,8 +28,9 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Obtener el usuario actual (no expira la sesión en este paso)
-  const { data: { user } } = await supabase.auth.getUser()
+  // Leer sesión del cookie sin llamada de red (evita timeout en Edge)
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
   const path = request.nextUrl.pathname
 
@@ -45,7 +46,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Si ya tiene sesión e intenta ir a /login o /register → al dashboard
-  if ((path === "/login" || path === "/register") && user) {
+  if ((path === "/login" || path === "/register") && session) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     return NextResponse.redirect(url)
