@@ -84,7 +84,7 @@ export default function ConversationList({
         .eq("status", "open")
         .or(`updated_at.gte.${since3days},ai_paused.eq.true`)
         .order("updated_at", { ascending: false })
-        .limit(50)
+        .limit(5)
 
       if (!convs) return
 

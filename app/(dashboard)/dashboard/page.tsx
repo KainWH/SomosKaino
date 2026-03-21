@@ -49,7 +49,7 @@ export default async function DashboardPage() {
       .select("id, status, ai_paused, updated_at, contacts(id, name, phone)")
       .eq("tenant_id", tenant.id).eq("status", "open")
       .or(`updated_at.gte.${new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()},ai_paused.eq.true`)
-      .order("updated_at", { ascending: false }).limit(50),
+      .order("updated_at", { ascending: false }).limit(5),
     supabase.from("orders").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("status", "pending"),
   ])
 
