@@ -53,9 +53,11 @@ export async function POST(
     return NextResponse.json({ error: "WhatsApp no configurado" }, { status: 400 })
   }
 
-  const buffer   = Buffer.from(await file.arrayBuffer())
-  const mimeType = file.type || (type === "image" ? "image/jpeg" : "audio/ogg")
-  const ext      = type === "image"
+  const buffer        = Buffer.from(await file.arrayBuffer())
+  const rawMimeType   = file.type || (type === "image" ? "image/jpeg" : "audio/ogg")
+  // Meta no acepta audio/webm — lo remapeamos a audio/ogg (mismo codec Opus, compatible)
+  const mimeType      = rawMimeType.startsWith("audio/webm") ? "audio/ogg" : rawMimeType
+  const ext           = type === "image"
     ? (mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg")
     : (mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : "ogg")
   const filename = `${type}-${Date.now()}.${ext}`
