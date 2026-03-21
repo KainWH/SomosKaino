@@ -445,7 +445,9 @@ async function processWebhookMessage(body: any) {
     : ""
 
   const referralContext = adHeadline
-    ? `\n\nCONTEXTO CRÍTICO — ANUNCIO DE PAGO: Este cliente llegó haciendo clic en un anuncio de ${adPlatform} sobre "${adHeadline}". Su mensaje (sea "Hola", "Hello", "info", o cualquier otro) se refiere DIRECTAMENTE a ese producto. ${adProductInfo} REGLAS OBLIGATORIAS: (1) NUNCA preguntes a qué producto se refiere. (2) ${isNewConversation ? `Es el PRIMER contacto: salúdalo con UNA oración, menciona SOLO el nombre del producto y el precio, pregunta si lo quiere. Ejemplo: "¡Hola! Tenemos el ${adHeadline}${adProduct?.price != null ? ` a ${adProduct.currency} ${adProduct.price}` : ""} disponible. ¿Te lo enviamos?" — ya le estamos enviando la dirección. Pon send_location en true.` : `Continúa la conversación sobre "${adHeadline}" de forma breve.`} (3) Si preguntan precio/detalles/stock sin especificar producto, siempre es sobre "${adHeadline}". (4) NUNCA listes especificaciones técnicas a menos que las pidan.`
+    ? adProduct
+      ? `\n\nCONTEXTO CRÍTICO — ANUNCIO DE PAGO: Este cliente llegó desde un anuncio de ${adPlatform} sobre "${adHeadline}". ${adProductInfo} REGLAS: (1) NUNCA preguntes a qué producto se refiere — ya lo sabes. (2) ${isNewConversation ? `Es el PRIMER contacto: salúdalo con UNA oración, menciona el producto y el precio, pregunta si lo quiere.` : `Continúa la conversación sobre "${adHeadline}" de forma breve.`} (3) Si preguntan precio/detalles/stock sin especificar producto, siempre es sobre "${adHeadline}". (4) NUNCA listes especificaciones técnicas a menos que las pidan.`
+      : `\n\nCONTEXTO — ANUNCIO DE PAGO: Este cliente llegó desde un anuncio de ${adPlatform} titulado "${adHeadline}", pero ese producto no está en el catálogo actual. REGLA OBLIGATORIA: salúdalo y pregúntale de qué producto se trata para poder ayudarlo correctamente.`
     : ""
 
   const companyContext = companyName
@@ -488,8 +490,6 @@ async function processWebhookMessage(body: any) {
   let sendLocation = aiReply.sendLocation
   const handover = aiReply.handover || replies.some(r => r.toLowerCase().includes("dame un momento"))
 
-  // Forzar ubicación en el primer mensaje que llega de un anuncio
-  if (isNewConversation && adHeadline) sendLocation = true
   console.log(`🔀 handover=${handover}`)
 
   // Guardar notas del lead
