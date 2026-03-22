@@ -132,11 +132,14 @@ async function processWebhookMessage(body: any) {
 
   const { data: tenantData } = await supabase
     .from("tenants")
-    .select("company, name")
+    .select("company, name, store_address, store_latitude, store_longitude")
     .eq("id", tenantId)
     .single()
 
-  const companyName = tenantData?.company || tenantData?.name || null
+  const companyName  = tenantData?.company || tenantData?.name || null
+  const storeAddress = tenantData?.store_address || process.env.STORE_ADDRESS || ""
+  const storeLat     = tenantData?.store_latitude  ? Number(tenantData.store_latitude)  : parseFloat(process.env.STORE_LATITUDE  ?? "0")
+  const storeLng     = tenantData?.store_longitude ? Number(tenantData.store_longitude) : parseFloat(process.env.STORE_LONGITUDE ?? "0")
 
   const { data: catalogConfig } = await supabase
     .from("catalog_configs")
@@ -583,10 +586,10 @@ async function processWebhookMessage(body: any) {
 
   // Enviar ubicación si el AI lo indicó
   if (sendLocation) {
-    const lat     = parseFloat(process.env.STORE_LATITUDE  ?? "0")
-    const lng     = parseFloat(process.env.STORE_LONGITUDE ?? "0")
-    const name    = process.env.STORE_NAME    ?? "Nuestra tienda"
-    const address = process.env.STORE_ADDRESS ?? ""
+    const lat     = storeLat
+    const lng     = storeLng
+    const name    = companyName ?? process.env.STORE_NAME ?? "Nuestra tienda"
+    const address = storeAddress
 
     if (lat && lng) {
       try {

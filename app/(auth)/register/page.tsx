@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { User, Building2, Mail, Lock, ArrowRight } from "lucide-react"
+import { User, Building2, Mail, Lock, MapPin, ArrowRight } from "lucide-react"
 import KainoLogo from "@/components/KainoLogo"
 
 const inputCls =
@@ -15,6 +15,7 @@ export default function RegisterPage() {
 
   const [name,            setName]            = useState("")
   const [company,         setCompany]         = useState("")
+  const [storeAddress,    setStoreAddress]    = useState("")
   const [email,           setEmail]           = useState("")
   const [password,        setPassword]        = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -41,7 +42,7 @@ export default function RegisterPage() {
       email,
       password,
       options: {
-        data: { name, company },
+        data: { name, company, store_address: storeAddress },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     })
@@ -116,6 +117,17 @@ export default function RegisterPage() {
                       onChange={e => setCompany(e.target.value)} required className={inputCls} />
                   </div>
                 </div>
+              </div>
+
+              {/* Dirección de la tienda */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-[#a3aac4] uppercase tracking-widest">Dirección de tu tienda</label>
+                <div className="relative">
+                  <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a3aac4]" />
+                  <input type="text" placeholder="Ej: Av. Circunvalación #45, San Pedro de Macorís" value={storeAddress}
+                    onChange={e => setStoreAddress(e.target.value)} className={inputCls} />
+                </div>
+                <p className="text-[10px] text-[#3a4460]">El agente usará esto cuando un cliente pregunte dónde están ubicados.</p>
               </div>
 
               {/* Email */}
