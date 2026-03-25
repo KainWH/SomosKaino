@@ -9,7 +9,10 @@
       "Bash(cd:*)",
       "Bash(npx tsc:*)",
       "Bash(git push:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git commit:*)",
+      "Bash(find \"C:/Users/benja/Documents/rentia/app/\\(dashboard\\)\" -type f -name \"*.tsx\")",
+      "Bash(node -e \"require\\(''@vercel/functions''\\); console.log\\(''OK''\\)\")"
     ]
   }
 }

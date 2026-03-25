@@ -15,9 +15,11 @@ export default async function DashboardPage() {
   const { data: tenant } = await supabase.from("tenants").select("id, name").eq("owner_id", user.id).single()
   if (!tenant) return <p className="p-6 text-red-500">Error: no se encontró tu cuenta.</p>
 
-  const today   = new Date(); today.setHours(0, 0, 0, 0)
-  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
-  const prevWeekStart = new Date(); prevWeekStart.setDate(prevWeekStart.getDate() - 14)
+  // RD es siempre UTC-4 (sin DST). Medianoche RD = 04:00 UTC.
+  const drDate    = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santo_Domingo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())
+  const today     = new Date(`${drDate}T04:00:00.000Z`)
+  const weekAgo   = new Date(today.getTime() - 7  * 86_400_000)
+  const prevWeekStart = new Date(today.getTime() - 14 * 86_400_000)
 
   // Query rápidas sin joins
   const [

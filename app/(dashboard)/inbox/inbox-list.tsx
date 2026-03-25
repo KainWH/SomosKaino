@@ -37,12 +37,18 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[hash]
 }
 
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+}
+
 function formatDate(dateStr: string) {
-  const date = new Date(dateStr), now = new Date()
-  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1)
-  if (date.toDateString() === now.toDateString())
-    return date.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })
-  if (date.toDateString() === yesterday.toDateString()) return "Ayer"
+  const date    = new Date(dateStr)
+  const today   = startOfDay(new Date())
+  const yesterday = today - 86_400_000   // 24h en ms
+  const dateDay = startOfDay(date)
+
+  if (dateDay === today)     return date.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })
+  if (dateDay === yesterday) return "Ayer"
   return date.toLocaleDateString("es-DO", { day: "numeric", month: "short" })
 }
 

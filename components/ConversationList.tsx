@@ -37,9 +37,14 @@ function getLastMsg(conv: Conv): Msg | undefined {
   return (conv.messages ?? []).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
 }
 
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+}
+
 function formatTime(d: string) {
-  const date = new Date(d), now = new Date()
-  if (date.toDateString() === now.toDateString())
+  const date  = new Date(d)
+  const today = startOfDay(new Date())
+  if (startOfDay(date) === today)
     return date.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" })
   return date.toLocaleDateString("es-DO", { day: "numeric", month: "short" })
 }
