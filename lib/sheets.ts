@@ -1,10 +1,6 @@
 // Obtiene los datos de Google Sheets como JSON y los convierte a texto legible para la IA
 // El sheet debe estar en modo público: "Cualquiera con el enlace puede ver"
 
-// IDs por defecto (se sobreescriben con la config del tenant)
-const DEFAULT_SHEET_ID  = "1lPNKPKn43Xoc3uRQTPkn0-2PIMQH4UXp3OOIHnPu-_k"
-const DEFAULT_SHEET_GID = "1022367056"
-
 function buildJsonUrl(sheetId: string, sheetGid: string) {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${sheetGid}`
 }
@@ -99,8 +95,9 @@ function parseGvizJson(raw: string): SheetData {
 }
 
 export async function getPropertyData(sheetId?: string | null, sheetGid?: string | null): Promise<SheetData> {
-  const id  = sheetId  || DEFAULT_SHEET_ID
-  const gid = sheetGid || DEFAULT_SHEET_GID
+  if (!sheetId || !sheetGid) return { text: "", imageMap: {} }
+  const id  = sheetId
+  const gid = sheetGid
   const cacheKey = `${id}:${gid}`
   const now = Date.now()
 

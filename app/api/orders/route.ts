@@ -45,6 +45,13 @@ export async function POST(request: NextRequest) {
   const u     = Math.max(1, parseInt(units) || 1)
   const price = parseFloat(unit_price) || 0
 
+  if (price < 0) {
+    return NextResponse.json({ error: "El precio no puede ser negativo" }, { status: 400 })
+  }
+  if (price > 10_000_000) {
+    return NextResponse.json({ error: "El precio supera el límite permitido" }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from("orders")
     .insert({
@@ -65,6 +72,6 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: "Error al crear la orden" }, { status: 500 })
   return NextResponse.json(data)
 }

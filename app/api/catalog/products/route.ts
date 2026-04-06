@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: "Error al crear el producto" }, { status: 500 })
 
   // ── Sincronizar automáticamente con WhatsApp Business Catalog ──
   const { data: waConfig } = await supabase

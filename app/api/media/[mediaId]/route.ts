@@ -42,6 +42,19 @@ export async function GET(
     return NextResponse.json({ error: "Sin configuración de WhatsApp" }, { status: 404 })
   }
 
+  // Verificar que el mediaId pertenece a una conversación del tenant (previene IDOR)
+  const { data: mediaOwnership } = await service
+    .from("messages")
+    .select("conversation_id, conversations!inner(tenant_id)")
+    .eq("media_id", params.mediaId)
+    .eq("conversations.tenant_id", tenant.id)
+    .limit(1)
+    .maybeSingle()
+
+  if (!mediaOwnership) {
+    return NextResponse.json({ error: "Media no encontrado" }, { status: 404 })
+  }
+
   // Paso 1: obtener la URL firmada del media
   const metaRes = await fetch(`${WHATSAPP_API_URL}/${params.mediaId}`, {
     headers: { Authorization: `Bearer ${config.access_token}` },

@@ -21,6 +21,29 @@ export async function POST(
   const { imageUrl, message } = await request.json()
   if (!message?.trim()) return NextResponse.json({ error: "Mensaje vacío" }, { status: 400 })
 
+  // Validar imageUrl contra SSRF — solo dominios de confianza permitidos
+  if (imageUrl) {
+    let parsedUrl: URL
+    try { parsedUrl = new URL(imageUrl) } catch {
+      return NextResponse.json({ error: "URL de imagen inválida" }, { status: 400 })
+    }
+    const allowed = [
+      process.env.NEXT_PUBLIC_SUPABASE_URL
+        ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+        : null,
+      "supabase.co",
+      "supabase.in",
+      "drive.google.com",
+      "googleusercontent.com",
+      "lh3.googleusercontent.com",
+    ].filter(Boolean) as string[]
+
+    const isAllowed = allowed.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith(`.${h}`))
+    if (!isAllowed || !["https:"].includes(parsedUrl.protocol)) {
+      return NextResponse.json({ error: "Dominio de imagen no permitido" }, { status: 400 })
+    }
+  }
+
   // Obtener conversación + contacto
   const { data: conversation } = await supabase
     .from("conversations")

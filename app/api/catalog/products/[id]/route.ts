@@ -35,7 +35,7 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: "Error al actualizar el producto" }, { status: 500 })
 
   // ── Sincronizar con WhatsApp Business ──
   const { data: waConfig } = await supabase
@@ -99,7 +99,7 @@ export async function DELETE(
     .eq("id", params.id)
     .eq("tenant_id", tenant.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: "Error al eliminar el producto" }, { status: 500 })
 
   // ── Eliminar imagen del storage ──
   if (product?.image_url) {

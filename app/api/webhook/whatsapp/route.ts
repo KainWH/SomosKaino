@@ -46,15 +46,15 @@ export async function POST(request: NextRequest) {
   // 1. Leer body RAW (necesario antes de parsear para validar firma)
   const rawBody = await request.text()
 
-  // 2. Validar firma de Meta — solo si META_APP_SECRET está configurado
+  // 2. Validar firma de Meta — obligatorio, rechazar si el secret no está configurado
   const signature = request.headers.get("x-hub-signature-256")
-  if (process.env.META_APP_SECRET) {
-    if (!validateWebhookSignature(rawBody, signature)) {
-      console.warn("⚠️ Webhook rechazado: firma inválida")
-      return new NextResponse("Unauthorized", { status: 401 })
-    }
-  } else {
-    console.warn("⚠️ META_APP_SECRET no configurado — validación de firma desactivada")
+  if (!process.env.META_APP_SECRET) {
+    console.error("❌ META_APP_SECRET no configurado — webhook rechazado por seguridad")
+    return new NextResponse("Service misconfigured", { status: 503 })
+  }
+  if (!validateWebhookSignature(rawBody, signature)) {
+    console.warn("⚠️ Webhook rechazado: firma inválida")
+    return new NextResponse("Unauthorized", { status: 401 })
   }
 
   // 3. Parsear JSON
