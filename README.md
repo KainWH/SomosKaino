@@ -132,15 +132,20 @@ rentia/
 ## 🗺️ Roadmap
 
 - [x] Estructura inicial del proyecto
-- [ ] Sistema de autenticación
-- [ ] Dashboard básico multi-tenant
-- [ ] Integración WhatsApp API
-- [ ] Inbox de conversaciones
-- [ ] Agente de IA configurable
-- [ ] Sistema de embudos
-- [ ] Calendario y agendamiento
-- [ ] Integración con Stripe
-- [ ] Landing page pública
+- [x] Sistema de autenticación (login, registro multi-tenant)
+- [x] Dashboard básico multi-tenant
+- [x] Integración WhatsApp API (webhook, templates, media)
+- [x] Inbox de conversaciones en tiempo real
+- [x] Agente de IA configurable por tenant
+- [x] Catálogo de productos y sincronización con WhatsApp
+- [x] Gestión de pedidos y contactos
+- [x] Base de conocimiento (documentos + catálogo)
+- [x] Control de inventario
+- [x] Reportes y analíticas básicas
+- [x] Landing page pública
+- [ ] Sistema de embudos (pipeline de ventas)
+- [ ] Calendario y agendamiento de citas
+- [ ] Integración con Stripe (pagos y suscripciones)
 
 ---
 
